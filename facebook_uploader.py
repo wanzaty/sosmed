@@ -60,31 +60,79 @@ class FacebookUploader:
         self.facebook_url = "https://www.facebook.com"
         self.reels_create_url = "https://www.facebook.com/reels/create/?surface=PROFILE_PLUS"
         
-        # Selectors - Menggunakan selector CSS yang sangat spesifik
+        # Selectors - Menggunakan selector CSS yang sangat spesifik + fallbacks
         self.selectors = {
             # STATUS TEXT ONLY
             'whats_on_mind_click_text_only': [
-                "#mount_0_0_oA > div > div:nth-child(1) > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div > div.x78zum5.xdt5ytf.x1t2pt76.x1n2onr6.x1ja2u2z.x10cihs4 > div.x9f619.x1ja2u2z.x78zum5.x2lah0s.x1n2onr6.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1t2pt76.x17upfok > div > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1iyjqo2.xs83m0k.xeuugli.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1iplk16.x1mfogq2.xsfy40s.x1wi7962.xpi1e93 > div > div > div > div.x78zum5.x1q0g3np.xl56j7k > div > div.x1yztbdb > div > div > div > div.x1cy8zhl.x78zum5.x1iyjqo2.xs83m0k.xh8yej3 > div > div.xi81zsa.x1lkfr7t.xkjl1po.x1mzt3pk.xh8yej3.x13faqbe > span"
+                # Selector utama yang diberikan user
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div > div.x78zum5.xdt5ytf.x1t2pt76.x1n2onr6.x1ja2u2z.x10cihs4 > div.x9f619.x1ja2u2z.x78zum5.x2lah0s.x1n2onr6.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1t2pt76.x17upfok > div > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1iyjqo2.xs83m0k.xeuugli.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1iplk16.x1mfogq2.xsfy40s.x1wi7962.xpi1e93 > div > div > div > div.x78zum5.x1q0g3np.xl56j7k > div > div.x1yztbdb > div > div > div > div.x1cy8zhl.x78zum5.x1iyjqo2.xs83m0k.xh8yej3 > div > div.xi81zsa.x1lkfr7t.xkjl1po.x1mzt3pk.xh8yej3.x13faqbe > span",
+                # Fallback selectors
+                "span[class*='xi81zsa'][class*='x1lkfr7t']",
+                "div[class*='x1cy8zhl'] span",
+                "div[role='button'][aria-label*='What\\'s on your mind']",
+                "div[role='button'][aria-label*='Apa yang Anda pikirkan']",
+                "span:contains('What\\'s on your mind')",
+                "span:contains('Apa yang Anda pikirkan')",
+                "[data-pagelet='FeedComposer'] div[role='button']"
             ],
             'text_input_frame_text_only': [
-                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.x1ed109x.x1iyjqo2.x5yr21d.x1n2onr6.xh8yej3 > div.x9f619.x1iyjqo2.xg7h5cd.xv54qhq.xf7dkkf.x1n2onr6.xh8yej3.x1ja2u2z.x1t1ogtf > div > div > div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate > p"
+                # Selector utama yang diberikan user
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.x1ed109x.x1iyjqo2.x5yr21d.x1n2onr6.xh8yej3 > div.x9f619.x1iyjqo2.xg7h5cd.xv54qhq.xf7dkkf.x1n2onr6.xh8yej3.x1ja2u2z.x1t1ogtf > div > div > div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate > p",
+                # Fallback selectors
+                "div[contenteditable='true'][role='textbox']",
+                "div[contenteditable='true'][class*='notranslate'] p",
+                "div[contenteditable='true'][data-text*='What\\'s on your mind']",
+                "div[contenteditable='true'][data-text*='Apa yang Anda pikirkan']",
+                "div[contenteditable='true'][aria-label*='What\\'s on your mind']",
+                "div[contenteditable='true'][aria-label*='Apa yang Anda pikirkan']",
+                "div[class*='xzsf02u'] p",
+                "p[class*='xzsf02u']"
             ],
             'post_button_text_only': [
-                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.x1l90r2v.xyamay9.x1n2onr6 > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1r8uery.x1iyjqo2.xs83m0k.xeuugli.x1qughib.x6s0dn4.xozqiw3.x1q0g3np.xv54qhq.xf7dkkf.xyamay9.x1lxpwgx.x165d6jo.x4vbgl9.x1rdy4ex > div > div > div > div.html-div.xdj266r.xat24cr.xexx8yu.xyri2b.x18d9i69.x1c1uobl.x6s0dn4.x78zum5.xl56j7k.x14ayic.xwyz465.x1e0frkt > div > span > span"
+                # Selector utama yang diberikan user
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.x1l90r2v.xyamay9.x1n2onr6 > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1r8uery.x1iyjqo2.xs83m0k.xeuugli.x1qughib.x6s0dn4.xozqiw3.x1q0g3np.xv54qhq.xf7dkkf.xyamay9.x1lxpwgx.x165d6jo.x4vbgl9.x1rdy4ex > div > div > div > div.html-div.xdj266r.xat24cr.xexx8yu.xyri2b.x18d9i69.x1c1uobl.x6s0dn4.x78zum5.xl56j7k.x14ayic.xwyz465.x1e0frkt > div > span > span",
+                # Fallback selectors
+                "div[aria-label='Post'][role='button']",
+                "div[aria-label='Posting'][role='button']",
+                "div[role='button'][aria-label*='Post']",
+                "div[role='button'][aria-label*='Posting']",
+                "span:contains('Post')",
+                "span:contains('Posting')",
+                "div[class*='html-div'] span:contains('Post')",
+                "div[class*='html-div'] span:contains('Posting')"
             ],
             
-            # TEXT + MEDIA
+            # TEXT + MEDIA (sama dengan text only untuk sekarang)
             'whats_on_mind_click_with_media': [
-                "#mount_0_0_oA > div > div:nth-child(1) > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div > div.x78zum5.xdt5ytf.x1t2pt76.x1n2onr6.x1ja2u2z.x10cihs4 > div.x9f619.x1ja2u2z.x78zum5.x2lah0s.x1n2onr6.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1t2pt76.x17upfok > div > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1iyjqo2.xs83m0k.xeuugli.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1iplk16.x1mfogq2.xsfy40s.x1wi7962.xpi1e93 > div > div > div > div.x78zum5.x1q0g3np.xl56j7k > div > div.x1yztbdb > div > div > div > div.x1cy8zhl.x78zum5.x1iyjqo2.xs83m0k.xh8yej3 > div > div.xi81zsa.x1lkfr7t.xkjl1po.x1mzt3pk.xh8yej3.x13faqbe > span"
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div > div.x78zum5.xdt5ytf.x1t2pt76.x1n2onr6.x1ja2u2z.x10cihs4 > div.x9f619.x1ja2u2z.x78zum5.x2lah0s.x1n2onr6.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1t2pt76.x17upfok > div > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1iyjqo2.xs83m0k.xeuugli.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1iplk16.x1mfogq2.xsfy40s.x1wi7962.xpi1e93 > div > div > div > div.x78zum5.x1q0g3np.xl56j7k > div > div.x1yztbdb > div > div > div > div.x1cy8zhl.x78zum5.x1iyjqo2.xs83m0k.xh8yej3 > div > div.xi81zsa.x1lkfr7t.xkjl1po.x1mzt3pk.xh8yej3.x13faqbe > span",
+                "span[class*='xi81zsa'][class*='x1lkfr7t']",
+                "div[class*='x1cy8zhl'] span",
+                "div[role='button'][aria-label*='What\\'s on your mind']",
+                "div[role='button'][aria-label*='Apa yang Anda pikirkan']",
+                "[data-pagelet='FeedComposer'] div[role='button']"
             ],
             'text_input_frame_with_media': [
-                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.x1ed109x.x1iyjqo2.x5yr21d.x1n2onr6.xh8yej3 > div.x9f619.x1iyjqo2.xg7h5cd.xv54qhq.xf7dkkf.x1n2onr6.xh8yej3.x1ja2u2z.x1t1ogtf > div > div > div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate > p"
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.x1ed109x.x1iyjqo2.x5yr21d.x1n2onr6.xh8yej3 > div.x9f619.x1iyjqo2.xg7h5cd.xv54qhq.xf7dkkf.x1n2onr6.xh8yej3.x1ja2u2z.x1t1ogtf > div > div > div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate > p",
+                "div[contenteditable='true'][role='textbox']",
+                "div[contenteditable='true'][class*='notranslate'] p",
+                "div[contenteditable='true'][data-text*='What\\'s on your mind']",
+                "div[contenteditable='true'][aria-label*='What\\'s on your mind']",
+                "div[class*='xzsf02u'] p"
             ],
             'media_upload_check': [
-                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.xexx8yu.xf159sx.x18d9i69.xmzvs34 > div > div.x1obq294.x5a5i1n.xde0f50.x15x8krk.x6ikm8r.x10wlt62.x1n2onr6.xh8yej3 > div:nth-child(1) > div > div > img"
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.xexx8yu.xf159sx.x18d9i69.xmzvs34 > div > div.x1obq294.x5a5i1n.xde0f50.x15x8krk.x6ikm8r.x10wlt62.x1n2onr6.xh8yej3 > div:nth-child(1) > div > div > img",
+                "img[src*='blob:']",
+                "img[alt*='DALL']",
+                "img[class*='x1fmog5m']",
+                "div[class*='xexx8yu'] img"
             ],
             'post_button_with_media': [
-                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.x1l90r2v.xyamay9.x1n2onr6 > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1r8uery.x1iyjqo2.xs83m0k.xeuugli.x1qughib.x6s0dn4.xozqiw3.x1q0g3np.xv54qhq.xf7dkkf.xyamay9.x1lxpwgx.x165d6jo.x4vbgl9.x1rdy4ex > div > div > div > div.html-div.xdj266r.xat24cr.xexx8yu.xyri2b.x18d9i69.x1c1uobl.x6s0dn4.x78zum5.xl56j7k.x14ayic.xwyz465.x1e0frkt > div > span > span"
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.x1l90r2v.xyamay9.x1n2onr6 > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1r8uery.x1iyjqo2.xs83m0k.xeuugli.x1qughib.x6s0dn4.xozqiw3.x1q0g3np.xv54qhq.xf7dkkf.xyamay9.x1lxpwgx.x165d6jo.x4vbgl9.x1rdy4ex > div > div > div > div.html-div.xdj266r.xat24cr.xexx8yu.xyri2b.x18d9i69.x1c1uobl.x6s0dn4.x78zum5.xl56j7k.x14ayic.xwyz465.x1e0frkt > div > span > span",
+                "div[aria-label='Post'][role='button']",
+                "div[aria-label='Posting'][role='button']",
+                "div[role='button'][aria-label*='Post']",
+                "span:contains('Post')",
+                "div[class*='html-div'] span:contains('Post')"
             ],
             
             # FILE INPUT
@@ -92,6 +140,16 @@ class FacebookUploader:
                 "input[type='file'][accept*='image']",
                 "input[type='file'][accept*='video']",
                 "input[type='file']"
+            ],
+            
+            # PHOTO/VIDEO BUTTON
+            'photo_video_button': [
+                "div[aria-label='Photo/video']",
+                "div[aria-label='Foto/video']",
+                "div[role='button'][aria-label*='Photo']",
+                "div[role='button'][aria-label*='Foto']",
+                "span:contains('Photo/video')",
+                "span:contains('Foto/video')"
             ]
         }
 
@@ -218,7 +276,7 @@ class FacebookUploader:
             raise
 
     def _find_element_by_selectors(self, selectors: list, timeout: int = 10, visible: bool = True) -> Optional[Any]:
-        """Mencari elemen menggunakan multiple selectors"""
+        """Mencari elemen menggunakan multiple selectors dengan prioritas"""
         for i, selector in enumerate(selectors):
             try:
                 if visible:
@@ -231,14 +289,31 @@ class FacebookUploader:
                     )
                 
                 if i == 0:
-                    self._log(f"Found element with exact selector", "SUCCESS")
+                    self._log(f"✅ Found element with EXACT selector (priority 1)", "SUCCESS")
                 else:
-                    self._log(f"Found element with alternative selector {i+1}", "SUCCESS")
+                    self._log(f"✅ Found element with fallback selector #{i+1}", "SUCCESS")
                 return element
                 
             except TimeoutException:
+                if i == 0:
+                    self._log(f"⚠️ Exact selector not found, trying fallbacks...", "WARNING")
                 continue
                 
+        return None
+
+    def _find_element_by_xpath_or_text(self, text_patterns: list, timeout: int = 10) -> Optional[Any]:
+        """Mencari elemen berdasarkan text content"""
+        for pattern in text_patterns:
+            try:
+                # Try XPath with text content
+                xpath = f"//*[contains(text(), '{pattern}')]"
+                element = WebDriverWait(self.driver, timeout).until(
+                    EC.element_to_be_clickable((By.XPATH, xpath))
+                )
+                self._log(f"✅ Found element by text: '{pattern}'", "SUCCESS")
+                return element
+            except TimeoutException:
+                continue
         return None
 
     def load_cookies(self) -> bool:
@@ -506,6 +581,14 @@ class FacebookUploader:
             self._log("🎯 STEP 1: Looking for 'What's on your mind' click element...")
             whats_on_mind_click = self._find_element_by_selectors(whats_on_mind_selector)
             
+            # Jika tidak ditemukan dengan CSS selector, coba dengan text
+            if not whats_on_mind_click:
+                self._log("🔍 Trying to find by text content...", "INFO")
+                whats_on_mind_click = self._find_element_by_xpath_or_text([
+                    "What's on your mind",
+                    "Apa yang Anda pikirkan"
+                ])
+            
             if not whats_on_mind_click:
                 raise NoSuchElementException("Tidak dapat menemukan elemen 'What's on your mind' untuk diklik")
             
@@ -546,6 +629,16 @@ class FacebookUploader:
             if has_media:
                 self._log("🎯 STEP 3: Adding media...")
                 
+                # Cari tombol Photo/Video terlebih dahulu
+                photo_video_button = self._find_element_by_selectors(self.selectors['photo_video_button'])
+                
+                if photo_video_button:
+                    self._log("✅ Found Photo/Video button, clicking...")
+                    if not self._click_element_safely(photo_video_button, "Photo/Video button"):
+                        self._log("⚠️ Failed to click Photo/Video button, trying direct file input", "WARNING")
+                    else:
+                        time.sleep(2)
+                
                 # Cari file input
                 file_input = self._find_element_by_selectors(self.selectors['file_input'], visible=False)
                 
@@ -573,6 +666,14 @@ class FacebookUploader:
             self._log("🎯 STEP 4: Looking for post button...")
             
             post_button = self._find_element_by_selectors(post_button_selector)
+            
+            # Jika tidak ditemukan dengan CSS selector, coba dengan text
+            if not post_button:
+                self._log("🔍 Trying to find Post button by text content...", "INFO")
+                post_button = self._find_element_by_xpath_or_text([
+                    "Post",
+                    "Posting"
+                ])
             
             if not post_button:
                 raise NoSuchElementException("Tidak dapat menemukan tombol Post")
