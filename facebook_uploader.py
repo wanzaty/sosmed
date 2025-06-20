@@ -3,7 +3,7 @@
 Facebook Uploader untuk Status dan Reels menggunakan Selenium
 Mendukung cookies JSON untuk auto-login dan upload berbagai jenis konten
 Unified approach untuk text dan media menggunakan selector yang sama
-Dengan selector optimization dan dual language support
+URUTAN: Text dahulu, lalu Media
 """
 
 import os
@@ -24,12 +24,12 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import (
-TimeoutException,
-NoSuchElementException,
-WebDriverException,
-ElementNotInteractableException,
-StaleElementReferenceException,
-ElementClickInterceptedException
+    TimeoutException,
+    NoSuchElementException,
+    WebDriverException,
+    ElementNotInteractableException,
+    StaleElementReferenceException,
+    ElementClickInterceptedException
 )
 from webdriver_manager.chrome import ChromeDriverManager
 from colorama import init, Fore, Style
@@ -59,86 +59,65 @@ class FacebookUploader:
         self.cookies_path = self.cookies_dir / "facebook_cookies.json"
         self.screenshots_dir = self.base_dir / "screenshots"
         self.screenshots_dir.mkdir(exist_ok=True)
-        self.performance_path = self.base_dir / "facebook_selector_performance.json"
         
         # Facebook URLs
         self.home_url = "https://www.facebook.com"
         self.reels_url = "https://www.facebook.com/reel/create"
         self.login_url = "https://www.facebook.com/login"
         
-        # 🎯 UNIFIED SELECTORS - Berdasarkan analisis gambar
+        # 🎯 OPTIMIZED SELECTORS - Berdasarkan gambar yang diberikan
         self.selectors = {
-            # ✅ UNIFIED "What's on your mind" - SAMA untuk text dan media
-            'whats_on_mind_trigger': [
-                # Berdasarkan gambar: elemen yang sama untuk text dan media
-                "div[role='button'][aria-label*='What\\'s on your mind']",
-                "div[role='button'][data-testid*='status-attachment-mentions-input']",
-                "div[contenteditable='true'][aria-label*='What\\'s on your mind']",
-                "div[contenteditable='true'][data-testid*='status-attachment-mentions-input']",
-                # XPath approach - lebih spesifik
-                "//*[contains(text(), \"What's on your mind\")]/ancestor::div[@role='button'][1]",
-                "//*[contains(text(), \"What's on your mind\")]/ancestor::div[@tabindex='0'][1]",
-                "//*[contains(text(), \"Apa yang Anda pikirkan\")]/ancestor::div[@role='button'][1]",  # Indonesian - PROTECTED
-                "//*[contains(text(), \"Apa yang Anda pikirkan\")]/ancestor::div[@tabindex='0'][1]",  # Indonesian - PROTECTED
-                # Fallback selectors
-                "div[data-testid='status-attachment-mentions-input']",
-                "div[aria-label*='What\\'s on your mind']",
-                "div[aria-label*='Apa yang Anda pikirkan']"  # Indonesian - PROTECTED
+            # ✅ "What's on your mind" detection - DUAL LANGUAGE
+            'whats_on_mind_text': [
+                "//*[contains(text(), \"What's on your mind\")]",
+                "//*[contains(text(), \"Apa yang Anda pikirkan\")]",  # Indonesian
+                "//*[contains(text(), \"What's on your mind?\")]"
             ],
             
-            # ✅ UNIFIED TEXT INPUT - Setelah klik "What's on your mind"
-            'unified_text_input': [
-                # Berdasarkan gambar: input text yang muncul setelah klik
-                "div[contenteditable='true'][aria-label*='What\\'s on your mind']",
-                "div[contenteditable='true'][aria-label*='Apa yang Anda pikirkan']",  # Indonesian - PROTECTED
-                "div[contenteditable='true'][data-testid*='status-attachment-mentions-input']",
+            # ✅ Text input - UNIFIED untuk text dan media
+            'status_text_input': [
+                # Berdasarkan gambar: input text yang sama untuk text dan media
+                "div[contenteditable='true'][data-testid*='status']",
+                "div[contenteditable='true'][aria-label*='What']",
                 "div[contenteditable='true'][role='textbox']",
-                # XPath untuk text input dalam modal
-                "//div[@aria-label='Create post']//div[@contenteditable='true']",
-                "//div[contains(@aria-label, 'Create post')]//div[@contenteditable='true']",
-                "//div[@role='dialog']//div[@contenteditable='true']",
-                # Fallback
+                "//*[contains(text(), \"What's on your mind\")]/following::div[@contenteditable='true'][1]",
+                "//*[contains(text(), \"Apa yang Anda pikirkan\")]/following::div[@contenteditable='true'][1]",
                 "div[contenteditable='true']"
             ],
             
-            # ✅ UNIFIED MEDIA UPLOAD - SAMA dengan text input area
-            'unified_media_upload': [
-                # Berdasarkan gambar: tombol Photo/video dalam "Add to your post"
-                "div[aria-label='Photo/video']",
-                "div[aria-label='Foto/video']",  # Indonesian - PROTECTED
+            # ✅ Photo/Video button - untuk membuka media selector
+            'photo_video_button': [
+                # Berdasarkan gambar: tombol "Photo/video" 
+                "//*[contains(text(), 'Photo/video')]",
+                "//*[contains(text(), 'Foto/video')]",  # Indonesian
+                "div[aria-label*='Photo']",
+                "div[aria-label*='Foto']",
+                "[data-testid*='photo']",
+                "[data-testid*='media']"
+            ],
+            
+            # ✅ Direct file upload input
+            'media_upload_input': [
                 "input[type='file'][accept*='image']",
-                "input[type='file'][accept*='video']",
+                "input[type='file'][accept*='video']", 
+                "input[type='file'][accept*='*']",
                 "input[type='file']",
-                # XPath untuk media button
-                "//div[contains(@aria-label, 'Photo/video')]",
-                "//div[contains(@aria-label, 'Foto/video')]",  # Indonesian - PROTECTED
-                "//div[contains(text(), 'Photo/video')]/ancestor::div[@role='button'][1]",
-                "//div[contains(text(), 'Foto/video')]/ancestor::div[@role='button'][1]",  # Indonesian - PROTECTED
-                # File input selectors
-                "//input[@type='file']",
-                "//input[@accept]"
+                "//input[@type='file']"
             ],
             
-            # ✅ POST BUTTON - Dalam modal Create post
+            # ✅ Post button - FIXED berdasarkan gambar
             'post_button': [
-                # Berdasarkan gambar: tombol Post biru di modal
+                # Berdasarkan gambar: tombol "Post" (bukan "Posting")
+                "//*[text()='Post' and @role='button']",
+                "//*[contains(text(), 'Post') and @role='button']",
+                "//*[text()='Posting' and @role='button']",  # Indonesian
+                "//*[contains(text(), 'Posting') and @role='button']",  # Indonesian
                 "div[aria-label='Post'][role='button']",
-                "div[aria-label='Posting'][role='button']",  # Indonesian - PROTECTED
                 "button[aria-label='Post']",
-                "button[aria-label='Posting']",  # Indonesian - PROTECTED
-                # XPath approach
-                "//div[@role='dialog']//div[@role='button'][contains(text(), 'Post')]",
-                "//div[@role='dialog']//div[@role='button'][contains(text(), 'Posting')]",  # Indonesian - PROTECTED
-                "//div[@role='dialog']//button[contains(text(), 'Post')]",
-                "//div[@role='dialog']//button[contains(text(), 'Posting')]",  # Indonesian - PROTECTED
-                # Data testid approach
-                "div[data-testid*='react-composer-post-button']",
-                "button[data-testid*='react-composer-post-button']",
-                # Generic fallback
-                "div[role='button'][tabindex='0']"
+                "[data-testid*='post-button']"
             ],
             
-            # ✅ REELS SPECIFIC SELECTORS
+            # ✅ Reels specific selectors - DUAL LANGUAGE
             'reels_upload_input': [
                 "input[type='file'][accept*='video']",
                 "input[type='file']",
@@ -146,170 +125,20 @@ class FacebookUploader:
             ],
             
             'reels_next_button': [
-                "div[aria-label='Next'][role='button']",
-                "div[aria-label='Berikutnya'][role='button']",  # Indonesian - PROTECTED
+                "//*[contains(text(), 'Next') and @role='button']",
+                "//*[contains(text(), 'Berikutnya') and @role='button']",  # Indonesian
                 "button[aria-label='Next']",
-                "button[aria-label='Berikutnya']",  # Indonesian - PROTECTED
-                "//div[@role='button'][contains(text(), 'Next')]",
-                "//div[@role='button'][contains(text(), 'Berikutnya')]",  # Indonesian - PROTECTED
-                "//button[contains(text(), 'Next')]",
-                "//button[contains(text(), 'Berikutnya')]"  # Indonesian - PROTECTED
+                "div[aria-label='Next'][role='button']"
             ],
             
             'reels_publish_button': [
-                "div[aria-label='Publish'][role='button']",
-                "div[aria-label='Terbitkan'][role='button']",  # Indonesian - PROTECTED
-                "div[aria-label='Share'][role='button']",
+                "//*[contains(text(), 'Publish') and @role='button']",
+                "//*[contains(text(), 'Terbitkan') and @role='button']",  # Indonesian
+                "//*[contains(text(), 'Share') and @role='button']",
                 "button[aria-label='Publish']",
-                "button[aria-label='Terbitkan']",  # Indonesian - PROTECTED
-                "button[aria-label='Share']",
-                "//div[@role='button'][contains(text(), 'Publish')]",
-                "//div[@role='button'][contains(text(), 'Terbitkan')]",  # Indonesian - PROTECTED
-                "//div[@role='button'][contains(text(), 'Share')]",
-                "//button[contains(text(), 'Publish')]",
-                "//button[contains(text(), 'Terbitkan')]",  # Indonesian - PROTECTED
-                "//button[contains(text(), 'Share')]"
+                "div[aria-label='Publish'][role='button']"
             ]
         }
-        
-        # Load performance data
-        self.selector_performance = self.load_performance_data()
-
-    def load_performance_data(self) -> Dict[str, Any]:
-        """Load selector performance data"""
-        try:
-            if self.performance_path.exists():
-                with open(self.performance_path, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-        except Exception as e:
-            if self.debug:
-                self._log(f"Error loading performance data: {e}", "DEBUG")
-        
-        return {
-            "selector_stats": {},
-            "last_updated": time.time(),
-            "total_operations": 0
-        }
-
-    def save_performance_data(self):
-        """Save selector performance data"""
-        try:
-            self.selector_performance["last_updated"] = time.time()
-            with open(self.performance_path, 'w', encoding='utf-8') as f:
-                json.dump(self.selector_performance, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            if self.debug:
-                self._log(f"Error saving performance data: {e}", "DEBUG")
-
-    def is_protected_selector(self, selector: str) -> bool:
-        """Check if selector is protected (Indonesian language)"""
-        indonesian_keywords = [
-            "Apa yang Anda pikirkan",
-            "Berikutnya", 
-            "Terbitkan",
-            "Foto/video",
-            "Posting"
-        ]
-        
-        return any(keyword in selector for keyword in indonesian_keywords)
-
-    def update_selector_performance(self, selector_type: str, selector: str, success: bool, response_time: float):
-        """Update selector performance statistics"""
-        if "selector_stats" not in self.selector_performance:
-            self.selector_performance["selector_stats"] = {}
-        
-        if selector_type not in self.selector_performance["selector_stats"]:
-            self.selector_performance["selector_stats"][selector_type] = {}
-        
-        if selector not in self.selector_performance["selector_stats"][selector_type]:
-            self.selector_performance["selector_stats"][selector_type][selector] = {
-                "success_count": 0,
-                "fail_count": 0,
-                "total_response_time": 0.0,
-                "last_used": 0,
-                "consecutive_fails": 0,
-                "is_protected": self.is_protected_selector(selector)
-            }
-        
-        stats = self.selector_performance["selector_stats"][selector_type][selector]
-        
-        if success:
-            stats["success_count"] += 1
-            stats["consecutive_fails"] = 0
-        else:
-            stats["fail_count"] += 1
-            stats["consecutive_fails"] += 1
-        
-        stats["total_response_time"] += response_time
-        stats["last_used"] = time.time()
-        
-        self.save_performance_data()
-
-    def optimize_selectors(self, selector_type: str) -> list:
-        """Optimize selector order based on performance"""
-        if selector_type not in self.selectors:
-            return []
-        
-        original_selectors = self.selectors[selector_type].copy()
-        
-        if selector_type not in self.selector_performance.get("selector_stats", {}):
-            return original_selectors
-        
-        stats = self.selector_performance["selector_stats"][selector_type]
-        
-        # Remove selectors with too many consecutive failures (except protected ones)
-        optimized_selectors = []
-        removed_count = 0
-        
-        for selector in original_selectors:
-            if selector in stats:
-                selector_stats = stats[selector]
-                
-                # Don't remove protected selectors (Indonesian)
-                if selector_stats.get("is_protected", False):
-                    optimized_selectors.append(selector)
-                    continue
-                
-                # Remove if too many consecutive failures
-                if selector_stats.get("consecutive_fails", 0) >= 5:
-                    removed_count += 1
-                    if self.debug:
-                        self._log(f"Removed poor performing selector: {selector[:50]}...", "DEBUG")
-                    continue
-            
-            optimized_selectors.append(selector)
-        
-        # Sort by performance (success rate and response time)
-        def selector_score(selector):
-            if selector not in stats:
-                return 0  # New selectors get neutral score
-            
-            s = stats[selector]
-            total_attempts = s["success_count"] + s["fail_count"]
-            
-            if total_attempts == 0:
-                return 0
-            
-            success_rate = s["success_count"] / total_attempts
-            avg_response_time = s["total_response_time"] / total_attempts if total_attempts > 0 else 1.0
-            
-            # Higher score = better performance
-            # Success rate (0-1) * 100 - response time penalty
-            score = (success_rate * 100) - (avg_response_time * 10)
-            
-            # Boost for recently used selectors
-            time_since_last_use = time.time() - s.get("last_used", 0)
-            if time_since_last_use < 3600:  # Within last hour
-                score += 10
-            
-            return score
-        
-        optimized_selectors.sort(key=selector_score, reverse=True)
-        
-        if removed_count > 0:
-            self._log(f"Optimized {selector_type}: removed {removed_count} poor selectors", "INFO")
-        
-        return optimized_selectors
 
     def _log(self, message: str, level: str = "INFO"):
         """Enhanced logging with colors"""
@@ -652,121 +481,212 @@ class FacebookUploader:
             self._log(f"All click methods failed: {e}", "ERROR")
             return False
 
-    def find_element_by_optimized_selectors(self, selector_type: str, timeout=10):
-        """🎯 UNIFIED ELEMENT FINDER with Performance Optimization"""
-        self._log(f"Looking for {selector_type} with optimized selectors...")
+    def find_whats_on_mind_element(self):
+        """🎯 UNIFIED ELEMENT FINDER - Same method for text and media"""
+        self._log("Looking for 'What's on your mind' element...")
         
-        # Get optimized selectors
-        selectors_list = self.optimize_selectors(selector_type)
+        # Wait for page to load
+        time.sleep(3)
         
-        if not selectors_list:
-            self._log(f"No selectors available for {selector_type}", "ERROR")
-            return None
+        # Try to find the text first
+        for xpath in self.selectors['whats_on_mind_text']:
+            try:
+                elements = self.driver.find_elements(By.XPATH, xpath)
+                
+                for element in elements:
+                    if element.is_displayed():
+                        # Check if this element is in the main feed area (not in comments)
+                        try:
+                            # Look for comment indicators in parent elements
+                            parent_html = element.find_element(By.XPATH, "./ancestor::div[5]").get_attribute('outerHTML')
+                            
+                            # Skip if this appears to be in a comment section
+                            if any(indicator in parent_html.lower() for indicator in ['comment', 'reply', 'response']):
+                                self._log("Skipping element in comment section", "DEBUG")
+                                continue
+                            
+                            # Find the clickable parent (usually a div with role="button" or tabindex)
+                            clickable_parent = None
+                            
+                            # Try to find clickable parent
+                            for i in range(1, 6):  # Check up to 5 levels up
+                                try:
+                                    parent = element.find_element(By.XPATH, f"./ancestor::*[@role='button' or @tabindex='0'][{i}]")
+                                    if parent.is_displayed() and parent.is_enabled():
+                                        clickable_parent = parent
+                                        break
+                                except NoSuchElementException:
+                                    continue
+                            
+                            if not clickable_parent:
+                                # Try to find any clickable ancestor
+                                try:
+                                    clickable_parent = element.find_element(By.XPATH, "./ancestor::*[@role='button'][1]")
+                                except NoSuchElementException:
+                                    try:
+                                        clickable_parent = element.find_element(By.XPATH, "./ancestor::div[@tabindex='0'][1]")
+                                    except NoSuchElementException:
+                                        # Use the element itself if no clickable parent found
+                                        clickable_parent = element
+                            
+                            self._log("Found 'What's on your mind' element", "SUCCESS")
+                            return clickable_parent
+                            
+                        except Exception as e:
+                            self._log(f"Error analyzing element: {e}", "DEBUG")
+                            continue
+                            
+            except Exception as e:
+                self._log(f"Error with xpath {xpath}: {e}", "DEBUG")
+                continue
         
-        for i, selector in enumerate(selectors_list):
-            start_time = time.time()
-            
+        return None
+
+    def find_element_by_selectors(self, selectors_list, timeout=10):
+        """🎯 UNIFIED ELEMENT FINDER - Same method for all selectors"""
+        for selector in selectors_list:
             try:
                 if selector.startswith('/'):
                     # XPath selector
                     elements = self.driver.find_elements(By.XPATH, selector)
                     for element in elements:
                         if element.is_displayed() or element.get_attribute('type') == 'file':
-                            response_time = time.time() - start_time
-                            self._log(f"✅ Found with selector #{i+1} ({response_time:.2f}s): {selector[:50]}...", "SUCCESS")
-                            
-                            # Update performance
-                            self.update_selector_performance(selector_type, selector, True, response_time)
+                            self._log(f"Found element with selector: {selector[:50]}...", "SUCCESS")
                             return element
                 else:
                     # CSS selector
                     elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
                     for element in elements:
                         if element.is_displayed() or element.get_attribute('type') == 'file':
-                            response_time = time.time() - start_time
-                            self._log(f"✅ Found with selector #{i+1} ({response_time:.2f}s): {selector[:50]}...", "SUCCESS")
-                            
-                            # Update performance
-                            self.update_selector_performance(selector_type, selector, True, response_time)
+                            self._log(f"Found element with selector: {selector[:50]}...", "SUCCESS")
                             return element
                     
             except Exception as e:
-                response_time = time.time() - start_time
-                self._log(f"❌ Selector #{i+1} failed ({response_time:.2f}s): {str(e)[:30]}...", "DEBUG")
-                
-                # Update performance
-                self.update_selector_performance(selector_type, selector, False, response_time)
+                self._log(f"Error with selector {selector[:30]}...: {e}", "DEBUG")
                 continue
         
-        self._log(f"No working selector found for {selector_type}", "ERROR")
         return None
 
-    def find_whats_on_mind_element(self):
-        """🎯 UNIFIED "What's on your mind" FINDER"""
-        self._log("Looking for 'What's on your mind' trigger element...")
+    def add_status_text_with_validation(self, status_text: str) -> bool:
+        """🎯 ADD STATUS TEXT WITH PROPER VALIDATION - STEP 1"""
+        if not status_text.strip():
+            self._log("No status text provided", "INFO")
+            return True
         
-        # Wait for page to load
-        time.sleep(3)
-        
-        # Use optimized selector finder
-        element = self.find_element_by_optimized_selectors('whats_on_mind_trigger', timeout=10)
-        
-        if element:
-            self._log("Found 'What's on your mind' trigger element", "SUCCESS")
-            return element
-        else:
-            self._log("Could not find 'What's on your mind' trigger element", "ERROR")
-            return None
-
-    def direct_file_upload(self, media_path: str) -> bool:
-        """🎯 DIRECT FILE UPLOAD - No file explorer popup"""
-        self._log("Attempting direct file upload...")
+        self._log("STEP 1: Adding status text first...")
         
         try:
-            # Find any file input on the page (they're usually hidden)
-            file_input = self.find_element_by_optimized_selectors('unified_media_upload', timeout=5)
+            # Find text input using unified approach
+            text_input = self.find_element_by_selectors(self.selectors['status_text_input'], timeout=10)
             
-            if file_input:
-                # Check if it's a file input
-                if file_input.get_attribute('type') == 'file':
-                    # Make the input visible if it's hidden
-                    self.driver.execute_script("""
-                        arguments[0].style.display = 'block';
-                        arguments[0].style.visibility = 'visible';
-                        arguments[0].style.opacity = '1';
-                        arguments[0].style.position = 'static';
-                    """, file_input)
+            if not text_input:
+                self._log("Text input not found", "ERROR")
+                return False
+            
+            # Click to focus the input
+            if not self.safe_click(text_input):
+                self._log("Failed to click text input", "ERROR")
+                return False
+            
+            time.sleep(1)
+            
+            # Clear any existing text
+            try:
+                text_input.send_keys(Keys.CONTROL + "a")
+                text_input.send_keys(Keys.BACKSPACE)
+                time.sleep(0.5)
+            except:
+                pass
+            
+            # Try multiple methods to enter text
+            methods = [
+                # Method 1: Direct send_keys
+                lambda: text_input.send_keys(status_text),
+                # Method 2: JavaScript setValue
+                lambda: self.driver.execute_script("arguments[0].textContent = arguments[1];", text_input, status_text),
+                # Method 3: JavaScript innerHTML
+                lambda: self.driver.execute_script("arguments[0].innerHTML = arguments[1];", text_input, status_text),
+                # Method 4: Character by character
+                lambda: self._type_text_slowly(text_input, status_text),
+                # Method 5: Focus and type
+                lambda: self._focus_and_type(text_input, status_text)
+            ]
+            
+            for i, method in enumerate(methods, 1):
+                try:
+                    self._log(f"Trying text input method {i}...", "INFO")
+                    method()
                     
-                    # Upload file directly
-                    abs_path = os.path.abspath(media_path)
-                    file_input.send_keys(abs_path)
-                    
-                    self._log("File uploaded directly without file explorer", "SUCCESS")
-                    time.sleep(3)  # Wait for upload to process
-                    return True
-                else:
-                    # It's a button, click it to trigger file dialog
-                    if self.safe_click(file_input):
-                        self._log("Media upload button clicked", "SUCCESS")
-                        time.sleep(2)
+                    # Validate if text was entered correctly
+                    if self.validate_text_input(text_input, status_text):
+                        self._log(f"✅ STEP 1 COMPLETE: Status text added successfully with method {i}", "SUCCESS")
+                        return True
+                    else:
+                        self._log(f"Method {i} failed validation, trying next...", "WARNING")
                         
-                        # Now look for the actual file input
-                        file_inputs = self.driver.find_elements(By.CSS_SELECTOR, "input[type='file']")
-                        for inp in file_inputs:
-                            try:
-                                abs_path = os.path.abspath(media_path)
-                                inp.send_keys(abs_path)
-                                self._log("File uploaded via triggered input", "SUCCESS")
-                                time.sleep(3)
-                                return True
-                            except:
-                                continue
+                        # Clear and try next method
+                        try:
+                            text_input.send_keys(Keys.CONTROL + "a")
+                            text_input.send_keys(Keys.BACKSPACE)
+                            time.sleep(0.5)
+                        except:
+                            pass
+                        
+                except Exception as e:
+                    self._log(f"Method {i} failed: {e}", "WARNING")
+                    continue
             
-            self._log("No suitable media upload element found", "WARNING")
+            self._log("All text input methods failed", "ERROR")
             return False
             
         except Exception as e:
-            self._log(f"Direct file upload failed: {e}", "WARNING")
+            self._log(f"Failed to add status text: {e}", "ERROR")
+            return False
+
+    def add_media_after_text(self, media_path: str) -> bool:
+        """🎯 ADD MEDIA AFTER TEXT - STEP 2"""
+        if not media_path or not os.path.exists(media_path):
+            self._log("No valid media file provided", "INFO")
+            return True
+        
+        self._log("STEP 2: Adding media after text...")
+        
+        try:
+            # First, try to find Photo/Video button
+            photo_video_button = self.find_element_by_selectors(self.selectors['photo_video_button'], timeout=5)
+            
+            if photo_video_button:
+                self._log("Found Photo/Video button, clicking...", "INFO")
+                if self.safe_click(photo_video_button):
+                    time.sleep(2)  # Wait for file dialog or input to appear
+                else:
+                    self._log("Failed to click Photo/Video button", "WARNING")
+            
+            # Find file input (might be hidden)
+            file_input = self.find_element_by_selectors(self.selectors['media_upload_input'], timeout=5)
+            
+            if file_input:
+                # Make the input visible if it's hidden
+                self.driver.execute_script("""
+                    arguments[0].style.display = 'block';
+                    arguments[0].style.visibility = 'visible';
+                    arguments[0].style.opacity = '1';
+                    arguments[0].style.position = 'static';
+                """, file_input)
+                
+                # Upload file directly
+                abs_path = os.path.abspath(media_path)
+                file_input.send_keys(abs_path)
+                
+                self._log("✅ STEP 2 COMPLETE: Media uploaded successfully", "SUCCESS")
+                time.sleep(3)  # Wait for upload to process
+                return True
+            else:
+                self._log("No file input found for media upload", "WARNING")
+                return False
+                
+        except Exception as e:
+            self._log(f"Media upload failed: {e}", "WARNING")
             return False
 
     def validate_text_input(self, text_input, expected_text: str) -> bool:
@@ -810,82 +730,6 @@ class FacebookUploader:
             self._log(f"Text validation error: {e}", "ERROR")
             return False
 
-    def add_status_text_with_validation(self, status_text: str) -> bool:
-        """🎯 ADD STATUS TEXT WITH PROPER VALIDATION"""
-        if not status_text.strip():
-            self._log("No status text provided", "INFO")
-            return True
-        
-        self._log("Adding status text with validation...")
-        
-        try:
-            # Find text input using unified approach
-            text_input = self.find_element_by_optimized_selectors('unified_text_input', timeout=10)
-            
-            if not text_input:
-                self._log("Text input not found", "ERROR")
-                return False
-            
-            # Click to focus the input
-            if not self.safe_click(text_input):
-                self._log("Failed to click text input", "ERROR")
-                return False
-            
-            time.sleep(1)
-            
-            # Clear any existing text
-            try:
-                text_input.send_keys(Keys.CONTROL + "a")
-                text_input.send_keys(Keys.BACKSPACE)
-                time.sleep(0.5)
-            except:
-                pass
-            
-            # Try multiple methods to enter text
-            methods = [
-                # Method 1: Direct send_keys
-                lambda: text_input.send_keys(status_text),
-                # Method 2: JavaScript setValue
-                lambda: self.driver.execute_script("arguments[0].textContent = arguments[1];", text_input, status_text),
-                # Method 3: JavaScript innerHTML
-                lambda: self.driver.execute_script("arguments[0].innerHTML = arguments[1];", text_input, status_text),
-                # Method 4: Character by character
-                lambda: self._type_text_slowly(text_input, status_text),
-                # Method 5: Focus and type
-                lambda: self._focus_and_type(text_input, status_text)
-            ]
-            
-            for i, method in enumerate(methods, 1):
-                try:
-                    self._log(f"Trying text input method {i}...", "INFO")
-                    method()
-                    
-                    # Validate if text was entered correctly
-                    if self.validate_text_input(text_input, status_text):
-                        self._log(f"Status text added successfully with method {i}", "SUCCESS")
-                        return True
-                    else:
-                        self._log(f"Method {i} failed validation, trying next...", "WARNING")
-                        
-                        # Clear and try next method
-                        try:
-                            text_input.send_keys(Keys.CONTROL + "a")
-                            text_input.send_keys(Keys.BACKSPACE)
-                            time.sleep(0.5)
-                        except:
-                            pass
-                        
-                except Exception as e:
-                    self._log(f"Method {i} failed: {e}", "WARNING")
-                    continue
-            
-            self._log("All text input methods failed", "ERROR")
-            return False
-            
-        except Exception as e:
-            self._log(f"Failed to add status text: {e}", "ERROR")
-            return False
-
     def _type_text_slowly(self, element, text: str):
         """Type text character by character"""
         for char in text:
@@ -906,7 +750,7 @@ class FacebookUploader:
 
     def upload_status(self, status_text: str = "", media_path: str = "") -> Dict[str, Any]:
         """
-        🎯 UNIFIED STATUS UPLOAD - Same approach for text and media
+        🎯 UNIFIED STATUS UPLOAD - TEXT FIRST, MEDIA SECOND
         
         Args:
             status_text: Text content for status
@@ -942,14 +786,14 @@ class FacebookUploader:
             # Take screenshot before attempting to find elements
             self.take_screenshot(f"facebook_before_post_{int(time.time())}.png")
             
-            # 🎯 STEP 1: Find the "What's on your mind" element (UNIFIED FOR ALL)
+            # 🎯 STEP 1: Find the "What's on your mind" element (SAME FOR ALL)
             whats_on_mind = self.find_whats_on_mind_element()
             
             if not whats_on_mind:
                 self.take_screenshot(f"facebook_no_whats_on_mind_{int(time.time())}.png")
                 raise NoSuchElementException("Could not find 'What's on your mind' element")
             
-            # 🎯 STEP 2: Click the "What's on your mind" element (UNIFIED FOR ALL)
+            # 🎯 STEP 2: Click the "What's on your mind" element (SAME FOR ALL)
             self._log("Clicking 'What's on your mind' element...")
             if not self.safe_click(whats_on_mind):
                 raise Exception("Failed to click 'What's on your mind' element")
@@ -957,20 +801,7 @@ class FacebookUploader:
             time.sleep(3)
             self._log("Post composer should now be open", "SUCCESS")
             
-            # 🎯 STEP 3: Add media if provided (DIRECT UPLOAD - NO FILE EXPLORER)
-            media_uploaded = False
-            if media_path and os.path.exists(media_path):
-                self._log("Adding media via direct upload...")
-                
-                # Try direct file upload first
-                if self.direct_file_upload(media_path):
-                    self._log("Media uploaded successfully via direct method", "SUCCESS")
-                    media_uploaded = True
-                    time.sleep(2)  # Wait for media to process
-                else:
-                    self._log("Direct upload failed, media not added", "WARNING")
-            
-            # 🎯 STEP 4: Add status text if provided (WITH PROPER VALIDATION)
+            # 🎯 STEP 3: Add status text FIRST (if provided)
             text_added = False
             if status_text.strip():
                 text_added = self.add_status_text_with_validation(status_text)
@@ -979,13 +810,22 @@ class FacebookUploader:
             else:
                 text_added = True  # No text to add, consider success
             
+            # 🎯 STEP 4: Add media SECOND (if provided)
+            media_uploaded = False
+            if media_path and os.path.exists(media_path):
+                media_uploaded = self.add_media_after_text(media_path)
+                if not media_uploaded:
+                    self._log("Failed to add media", "WARNING")
+            else:
+                media_uploaded = True  # No media to add, consider success
+            
             # 🎯 STEP 5: Validate we have content to post
             if not text_added and not media_uploaded:
                 raise Exception("Neither text nor media was successfully added")
             
-            # 🎯 STEP 6: Find and click post button (UNIFIED FOR ALL)
+            # 🎯 STEP 6: Find and click post button (SAME FOR ALL)
             self._log("Looking for post button...")
-            post_button = self.find_element_by_optimized_selectors('post_button', timeout=10)
+            post_button = self.find_element_by_selectors(self.selectors['post_button'], timeout=10)
             
             if not post_button:
                 self.take_screenshot(f"facebook_no_post_button_{int(time.time())}.png")
@@ -1000,7 +840,7 @@ class FacebookUploader:
             success_message = []
             if text_added and status_text.strip():
                 success_message.append("text")
-            if media_uploaded:
+            if media_uploaded and media_path:
                 success_message.append("media")
             
             content_type = " + ".join(success_message) if success_message else "content"
@@ -1073,7 +913,7 @@ class FacebookUploader:
             self._log("Uploading video file...")
             
             # Find file input
-            file_input = self.find_element_by_optimized_selectors('reels_upload_input', timeout=10)
+            file_input = self.find_element_by_selectors(self.selectors['reels_upload_input'], timeout=10)
             
             if not file_input:
                 raise NoSuchElementException("Video upload element not found")
@@ -1089,14 +929,14 @@ class FacebookUploader:
             
             # Navigate through reels creation steps
             # Step 1: First Next button
-            next_button = self.find_element_by_optimized_selectors('reels_next_button', timeout=10)
+            next_button = self.find_element_by_selectors(self.selectors['reels_next_button'], timeout=10)
             if next_button:
                 if self.safe_click(next_button):
                     self._log("First 'Next' button clicked", "SUCCESS")
                     time.sleep(3)
             
             # Step 2: Second Next button (if exists)
-            next_button = self.find_element_by_optimized_selectors('reels_next_button', timeout=5)
+            next_button = self.find_element_by_selectors(self.selectors['reels_next_button'], timeout=5)
             if next_button:
                 if self.safe_click(next_button):
                     self._log("Second 'Next' button clicked", "SUCCESS")
@@ -1122,7 +962,7 @@ class FacebookUploader:
             
             # Find and click publish button
             self._log("Looking for publish button...")
-            publish_button = self.find_element_by_optimized_selectors('reels_publish_button', timeout=10)
+            publish_button = self.find_element_by_selectors(self.selectors['reels_publish_button'], timeout=10)
             
             if not publish_button:
                 raise NoSuchElementException("Publish button not found")
@@ -1179,51 +1019,6 @@ class FacebookUploader:
         except Exception as e:
             self._log(f"Failed to save screenshot: {str(e)}", "WARNING")
             return None
-
-    def show_performance_report(self):
-        """Show detailed performance report"""
-        self._log("📊 Facebook Selector Performance Report", "INFO")
-        print("=" * 80)
-        
-        if not self.selector_performance.get("selector_stats"):
-            self._log("No performance data available yet", "WARNING")
-            return
-        
-        for selector_type, selectors in self.selector_performance["selector_stats"].items():
-            print(f"\n🎯 {selector_type.upper()}:")
-            print("-" * 60)
-            
-            # Sort by success rate
-            sorted_selectors = sorted(
-                selectors.items(),
-                key=lambda x: x[1]["success_count"] / max(1, x[1]["success_count"] + x[1]["fail_count"]),
-                reverse=True
-            )
-            
-            for selector, stats in sorted_selectors:
-                total_attempts = stats["success_count"] + stats["fail_count"]
-                if total_attempts == 0:
-                    continue
-                
-                success_rate = (stats["success_count"] / total_attempts) * 100
-                avg_response_time = stats["total_response_time"] / total_attempts
-                
-                # Status indicators
-                status = "✅" if success_rate > 80 else "⚠️" if success_rate > 50 else "❌"
-                protected = "🛡️" if stats.get("is_protected", False) else ""
-                removed = "🗑️" if stats.get("consecutive_fails", 0) >= 5 and not stats.get("is_protected", False) else ""
-                
-                print(f"{status} {protected} {removed} {success_rate:5.1f}% | {avg_response_time:5.2f}s | {selector[:50]}...")
-                
-                if self.debug:
-                    print(f"    Success: {stats['success_count']}, Fails: {stats['fail_count']}, Consecutive Fails: {stats['consecutive_fails']}")
-        
-        print(f"\n📈 Total Operations: {self.selector_performance.get('total_operations', 0)}")
-        
-        if self.selector_performance.get("last_updated"):
-            import datetime
-            last_update = datetime.datetime.fromtimestamp(self.selector_performance["last_updated"])
-            print(f"📅 Last Updated: {last_update.strftime('%Y-%m-%d %H:%M:%S')}")
 
     def check_cookies_status(self):
         """Check Facebook cookies status"""
@@ -1297,7 +1092,6 @@ def main():
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--clear-cookies", action="store_true", help="Clear cookies")
     parser.add_argument("--check-cookies", action="store_true", help="Check cookies status")
-    parser.add_argument("--show-performance", action="store_true", help="Show selector performance report")
 
     args = parser.parse_args()
 
@@ -1310,10 +1104,6 @@ def main():
 
     if args.check_cookies:
         uploader.check_cookies_status()
-        return
-
-    if args.show_performance:
-        uploader.show_performance_report()
         return
 
     if args.type == 'status':
@@ -1358,14 +1148,16 @@ def main():
         # Interactive mode
         print(f"{Fore.BLUE}📘 Facebook Uploader")
         print("=" * 40)
+        print(f"{Fore.YELLOW}🔄 NEW: Text First, Media Second")
+        print()
         
         while True:
             print(f"\n{Fore.YELLOW}Choose action:")
-            print("1. 📝 Upload Status (Text)")
-            print("2. 🖼️ Upload Status (with Media)")
-            print("3. 🎬 Upload Reels")
-            print("4. 🍪 Check cookies status")
-            print("5. 📊 Show performance report")
+            print("1. 📝 Upload Status (Text Only)")
+            print("2. 🖼️ Upload Status (Media Only)")
+            print("3. 📝🖼️ Upload Status (Text + Media)")
+            print("4. 🎬 Upload Reels")
+            print("5. 🍪 Check cookies status")
             print("6. 🗑️ Clear cookies")
             print("7. ❌ Exit")
             
@@ -1390,9 +1182,7 @@ def main():
                     print(f"{Fore.RED}❌ Media file not found!")
                     continue
                 
-                status_text = input(f"{Fore.CYAN}Status text (optional): ").strip()
-                
-                result = uploader.upload_status(status_text, media_path)
+                result = uploader.upload_status("", media_path)
                 
                 if result["success"]:
                     print(f"{Fore.GREEN}🎉 Facebook status with media uploaded successfully!")
@@ -1400,6 +1190,27 @@ def main():
                     print(f"{Fore.RED}❌ Facebook status upload failed: {result['message']}")
             
             elif choice == "3":
+                status_text = input(f"{Fore.CYAN}Status text: ").strip()
+                if not status_text:
+                    print(f"{Fore.RED}❌ Status text cannot be empty for text + media!")
+                    continue
+                
+                media_path = input(f"{Fore.CYAN}Media file path: ").strip()
+                if not os.path.exists(media_path):
+                    print(f"{Fore.RED}❌ Media file not found!")
+                    continue
+                
+                print(f"{Fore.YELLOW}🔄 Order: Text first, then media")
+                result = uploader.upload_status(status_text, media_path)
+                
+                if result["success"]:
+                    print(f"{Fore.GREEN}🎉 Facebook status with text + media uploaded successfully!")
+                    print(f"{Fore.CYAN}📝 Text: {result.get('text_added', False)}")
+                    print(f"{Fore.CYAN}📷 Media: {result.get('media_uploaded', False)}")
+                else:
+                    print(f"{Fore.RED}❌ Facebook status upload failed: {result['message']}")
+            
+            elif choice == "4":
                 video_path = input(f"{Fore.CYAN}Video file path: ").strip()
                 if not os.path.exists(video_path):
                     print(f"{Fore.RED}❌ Video file not found!")
@@ -1414,11 +1225,8 @@ def main():
                 else:
                     print(f"{Fore.RED}❌ Facebook Reels upload failed: {result['message']}")
             
-            elif choice == "4":
-                uploader.check_cookies_status()
-            
             elif choice == "5":
-                uploader.show_performance_report()
+                uploader.check_cookies_status()
             
             elif choice == "6":
                 confirm = input(f"{Fore.YELLOW}Clear Facebook cookies? (y/N): ").strip().lower()
