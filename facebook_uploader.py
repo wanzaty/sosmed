@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Facebook Uploader - Status dan Reels dengan dukungan media
-Mendukung cookies JSON untuk auto-login dan selector yang spesifik
+Facebook Uploader untuk Status dan Reels
+Mendukung cookies JSON untuk auto-login dan selector yang robust
 """
 
 import os
@@ -61,174 +61,159 @@ class FacebookUploader:
         self.facebook_url = "https://www.facebook.com"
         self.reels_create_url = "https://www.facebook.com/reels/create/?surface=PROFILE_PLUS"
         
-        # Enhanced selectors dengan prioritas
+        # Enhanced selectors dengan lebih banyak fallback
         self.selectors = {
-            'status_click_element': [
-                # Priority selectors (most likely to work)
+            # What's on your mind selectors - EXPANDED
+            'whats_on_mind_click': [
+                # Standard selectors
                 "div[role='textbox'][aria-label*='mind']",
-                "div[role='textbox'][data-lexical-editor='true']",
+                "div[role='textbox'][data-text*='mind']",
                 "div[contenteditable='true'][aria-label*='mind']",
+                "div[contenteditable='true'][data-text*='mind']",
                 
-                # Fallback selectors
-                "div[aria-label*=\"What's on your mind\"]",
-                "div[aria-label*='mind'][role='textbox']",
-                "div[data-lexical-editor='true']",
-                "div[contenteditable='true'][spellcheck='true']",
+                # Placeholder-based selectors
                 "div[aria-placeholder*='mind']",
+                "div[placeholder*='mind']",
+                "textarea[placeholder*='mind']",
+                "input[placeholder*='mind']",
                 
-                # XPath alternatives
-                "//div[contains(@aria-label, 'mind')]",
-                "//div[@role='textbox' and contains(@aria-label, 'mind')]",
-                "//div[@contenteditable='true' and contains(@aria-label, 'mind')]"
+                # Generic post creation selectors
+                "div[role='textbox'][aria-label*='post']",
+                "div[role='textbox'][aria-label*='share']",
+                "div[role='textbox'][aria-label*='write']",
+                "div[contenteditable='true'][aria-label*='post']",
+                
+                # Data attribute selectors
+                "div[data-testid*='status']",
+                "div[data-testid*='composer']",
+                "div[data-testid*='post']",
+                
+                # Class-based selectors
+                ".composer_rich_textarea",
+                ".notranslate[contenteditable='true']",
+                "div[contenteditable='true'].notranslate",
+                
+                # Aria-label variations
+                "div[aria-label*='What']",
+                "div[aria-label*='Share']",
+                "div[aria-label*='Create']",
+                "div[aria-label*='Post']",
+                
+                # Generic fallbacks
+                "div[contenteditable='true']",
+                "div[role='textbox']",
+                "textarea",
+                ".UFIAddCommentInput",
+                
+                # Mobile/responsive selectors
+                "div[data-sigil='composer-textarea']",
+                "div[data-sigil='status-textarea']"
             ],
             
+            # Composer validation selectors
             'composer_indicators': [
-                # Strong indicators that composer is open
-                "div[aria-label='Create post']",
-                "div[aria-label='Post']", 
-                "button[aria-label='Post']",
-                "div[role='dialog'][aria-label*='post']",
-                "div[role='dialog'][aria-label*='Create']",
-                
-                # Media upload indicators
-                "div[aria-label='Photo/video']",
-                "input[accept*='image']",
-                "input[accept*='video']",
-                "div[aria-label*='Add photos']",
-                
-                # Text input indicators
-                "div[contenteditable='true'][data-lexical-editor='true']",
-                "div[role='textbox'][data-lexical-editor='true']",
-                "textarea[aria-label*='post']",
-                
-                # Post button indicators
-                "button[type='submit'][aria-label='Post']",
-                "div[role='button'][aria-label='Post']"
+                "div[aria-label*='Post']",
+                "button[aria-label*='Post']",
+                "div[role='dialog']",
+                "div[aria-modal='true']",
+                "div[data-testid*='composer']",
+                ".composer",
+                "form[method='post']",
+                "div[contenteditable='true']",
+                "textarea[placeholder*='mind']",
+                "div[aria-label*='Create post']"
             ],
             
+            # Photo/Video button selectors - EXPANDED
             'photo_video_button': [
                 # Primary selectors
-                "div[aria-label='Photo/video']",
+                "div[aria-label*='Photo/video']",
                 "div[aria-label*='Photo']",
-                "div[aria-label*='photo']",
-                "div[aria-label*='Add photos']",
-                
-                # Icon-based selectors
-                "div[role='button'][aria-label*='photo']",
-                "div[role='button'][aria-label*='Photo']",
-                "button[aria-label*='photo']",
+                "div[aria-label*='Video']",
+                "button[aria-label*='Photo/video']",
                 "button[aria-label*='Photo']",
                 
-                # SVG/Icon selectors
-                "svg[aria-label*='photo']",
-                "i[data-visualcompletion='css-img'][aria-label*='photo']",
-                
-                # Fallback selectors
+                # Data attribute selectors
                 "div[data-testid*='photo']",
                 "div[data-testid*='media']",
+                "button[data-testid*='photo']",
                 
-                # XPath alternatives
-                "//div[@aria-label='Photo/video']",
-                "//div[contains(@aria-label, 'photo') or contains(@aria-label, 'Photo')]",
-                "//div[@role='button' and contains(@aria-label, 'photo')]"
-            ],
-            
-            'file_input': [
+                # Icon-based selectors
+                "div[role='button'] svg[aria-label*='Photo']",
+                "button svg[aria-label*='Photo']",
+                "div[role='button'] i[data-visualcompletion='css-img']",
+                
+                # Text-based selectors
+                "div[role='button']:contains('Photo')",
+                "button:contains('Photo')",
+                "span:contains('Photo/video')",
+                
+                # Generic media selectors
                 "input[type='file'][accept*='image']",
-                "input[type='file'][accept*='video']", 
-                "input[type='file'][multiple]",
+                "input[type='file'][accept*='video']",
+                "input[accept*='image,video']",
+                
+                # Fallback selectors
+                "div[role='button'][tabindex='0']",
+                "button[type='button']"
+            ],
+            
+            # File input selectors
+            'file_input': [
+                "input[type='file'][accept*='video']",
+                "input[type='file'][accept*='image']",
                 "input[type='file']",
-                "input[accept*='image']",
-                "input[accept*='video']"
+                "input[accept*='video']",
+                "input[accept*='image']"
             ],
             
+            # Text input selectors for status
             'status_text_input': [
-                # After media upload, text input selectors
-                "div[contenteditable='true'][data-lexical-editor='true']",
-                "div[role='textbox'][data-lexical-editor='true']",
-                "div[contenteditable='true'][aria-label*='Comment']",
-                "div[contenteditable='true'][spellcheck='true']",
-                "textarea[aria-label*='post']",
-                "div[aria-label*='Comment as']",
-                
-                # XPath alternatives
-                "//div[@contenteditable='true' and @data-lexical-editor='true']",
-                "//div[@role='textbox' and @data-lexical-editor='true']"
+                "div[contenteditable='true'][aria-label*='mind']",
+                "div[contenteditable='true'][data-text*='mind']",
+                "div[contenteditable='true'][aria-placeholder*='mind']",
+                "div[role='textbox'][aria-label*='mind']",
+                "div[role='textbox']",
+                "div[contenteditable='true']",
+                "textarea[placeholder*='mind']",
+                "textarea",
+                ".notranslate[contenteditable='true']",
+                "div[aria-label*='Comment']",
+                "div[contenteditable='true'].notranslate"
             ],
             
+            # Post button selectors
             'post_button': [
-                "button[type='submit'][aria-label='Post']",
-                "div[role='button'][aria-label='Post']",
-                "button[aria-label='Post']",
                 "div[aria-label='Post'][role='button']",
+                "button[aria-label='Post']",
+                "div[role='button'][aria-label='Post']",
+                "button:contains('Post')",
+                "div[role='button']:contains('Post')",
                 "button[type='submit']",
-                
-                # XPath alternatives
-                "//button[@aria-label='Post']",
-                "//div[@role='button' and @aria-label='Post']",
-                "//button[@type='submit' and @aria-label='Post']"
+                "div[data-testid*='post']",
+                "button[data-testid*='post']"
             ],
             
+            # Success indicators
+            'success_indicators': [
+                "div[role='alert']",
+                "div[aria-live='polite']",
+                "div[data-testid='success']",
+                ".success",
+                "div:contains('posted')",
+                "div:contains('shared')"
+            ],
+            
+            # Overlay/modal close selectors
             'overlay_close': [
                 "div[aria-label='Close']",
                 "button[aria-label='Close']",
                 "div[role='button'][aria-label='Close']",
-                "svg[aria-label='Close']",
-                "i[aria-label='Close']",
-                
-                # XPath alternatives
-                "//div[@aria-label='Close']",
-                "//button[@aria-label='Close']"
-            ],
-            
-            # Reels specific selectors
-            'reels_upload_input': [
-                "input[type='file'][accept*='video']",
-                "input[type='file']",
-                "input[accept*='video']"
-            ],
-            
-            'reels_next_button': [
-                # English
-                "div[aria-label='Next']",
-                "button[aria-label='Next']",
-                "div[role='button'][aria-label='Next']",
-                
-                # Indonesian
-                "div[aria-label='Berikutnya']", 
-                "button[aria-label='Berikutnya']",
-                "div[role='button'][aria-label='Berikutnya']",
-                
-                # Text-based
-                "//div[text()='Next']",
-                "//button[text()='Next']",
-                "//div[text()='Berikutnya']",
-                "//button[text()='Berikutnya']"
-            ],
-            
-            'reels_description_input': [
-                "div[contenteditable='true'][aria-label*='description']",
-                "div[contenteditable='true'][data-lexical-editor='true']",
-                "textarea[aria-label*='description']",
-                "div[role='textbox']"
-            ],
-            
-            'reels_publish_button': [
-                # English
-                "div[aria-label='Publish']",
-                "button[aria-label='Publish']",
-                "div[role='button'][aria-label='Publish']",
-                
-                # Indonesian
-                "div[aria-label='Terbitkan']",
-                "button[aria-label='Terbitkan']", 
-                "div[role='button'][aria-label='Terbitkan']",
-                
-                # Text-based
-                "//div[text()='Publish']",
-                "//button[text()='Publish']",
-                "//div[text()='Terbitkan']",
-                "//button[text()='Terbitkan']"
+                "button[aria-label='Cancel']",
+                "div[aria-label='Dismiss']",
+                ".close",
+                "button.close",
+                "div[data-testid='close']"
             ]
         }
 
@@ -294,14 +279,14 @@ class FacebookUploader:
         
         if self.headless:
             chrome_options.add_argument('--headless=new')
-            self._log("Mode headless diaktifkan")
-        
+            
         # Additional options
         chrome_options.add_argument('--disable-extensions')
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--disable-images')
         chrome_options.add_argument('--disable-notifications')
         chrome_options.add_argument('--log-level=3')
+        chrome_options.add_argument('--silent')
         chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         
         # Anti-detection
@@ -322,266 +307,112 @@ class FacebookUploader:
             self._log(f"Gagal menyiapkan browser: {str(e)}", "ERROR")
             raise
 
-    def _find_element_with_retry(self, selectors: list, timeout: int = 10, retries: int = 3) -> Optional[Any]:
-        """Find element dengan retry mechanism dan stale element protection"""
-        for attempt in range(retries):
-            if attempt > 0:
-                self._log(f"🔄 Retry {attempt + 1}/{retries} finding element...")
-                time.sleep(1)
+    def _find_element_with_retry(self, selectors: list, timeout: int = 10, max_retries: int = 3) -> Optional[Any]:
+        """Find element dengan retry mechanism yang robust"""
+        for retry in range(max_retries):
+            if retry > 0:
+                self._log(f"🔄 Retry {retry + 1}/{max_retries} finding element...")
+                time.sleep(2)
             
             for i, selector in enumerate(selectors):
                 try:
-                    # Determine if XPath or CSS
-                    if selector.startswith('//'):
-                        by_method = By.XPATH
-                    else:
-                        by_method = By.CSS_SELECTOR
-                    
-                    element = WebDriverWait(self.driver, timeout // len(selectors)).until(
-                        EC.presence_of_element_located((by_method, selector))
+                    element = WebDriverWait(self.driver, timeout // max_retries).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
                     )
                     
-                    # Validate element is displayed and not stale
                     if element and element.is_displayed():
                         if i == 0:
                             self._log("✅ ✅ Found element with primary selector", "SUCCESS")
-                        elif i < 3:
+                        elif i < 5:
                             self._log(f"✅ ✅ Found element with priority selector", "SUCCESS")
                         else:
-                            self._log(f"✅ ✅ Found element with fallback #{i-2}", "SUCCESS")
+                            self._log(f"✅ ✅ Found element with fallback #{i-4}", "SUCCESS")
                         return element
                         
-                except (TimeoutException, StaleElementReferenceException, NoSuchElementException):
+                except (TimeoutException, NoSuchElementException, StaleElementReferenceException):
                     continue
                 except Exception as e:
                     if self.debug:
-                        self._log(f"🔍 Selector error: {str(e)[:100]}...", "DEBUG")
+                        self._log(f"🔍 Selector {i+1} error: {str(e)[:50]}...", "DEBUG")
                     continue
         
         return None
 
     def _dismiss_overlays(self):
-        """Dismiss any overlays that might be blocking interactions"""
+        """Dismiss any overlays or modals that might be blocking"""
         self._log("🔍 Checking for overlays to dismiss...")
         
-        overlays_dismissed = 0
-        
+        dismissed_count = 0
         for selector in self.selectors['overlay_close']:
             try:
-                if selector.startswith('//'):
-                    by_method = By.XPATH
-                else:
-                    by_method = By.CSS_SELECTOR
-                
-                overlays = self.driver.find_elements(by_method, selector)
-                
+                overlays = self.driver.find_elements(By.CSS_SELECTOR, selector)
                 for overlay in overlays:
-                    try:
-                        if overlay.is_displayed() and overlay.is_enabled():
+                    if overlay.is_displayed():
+                        try:
                             overlay.click()
-                            self._log(f"✅ ✅ Dismissed overlay with selector: {selector[:30]}...", "SUCCESS")
-                            overlays_dismissed += 1
-                            time.sleep(0.5)
-                    except:
-                        continue
-                        
+                            self._log(f"✅ ✅ Dismissed overlay with selector: {selector}...")
+                            dismissed_count += 1
+                            time.sleep(1)
+                        except:
+                            continue
             except:
                 continue
         
-        if overlays_dismissed > 0:
-            self._log(f"✅ ✅ Dismissed {overlays_dismissed} overlays", "SUCCESS")
-            time.sleep(1)  # Wait for UI to settle
+        if dismissed_count > 0:
+            self._log(f"✅ ✅ Dismissed {dismissed_count} overlays", "SUCCESS")
+            time.sleep(2)  # Wait for UI to settle
         else:
-            self._log("ℹ️ ℹ️ No overlays found to dismiss", "INFO")
+            self._log("ℹ️ ℹ️ No overlays found to dismiss")
 
-    def _scroll_element_into_view(self, element):
+    def _scroll_to_element(self, element):
         """Scroll element into view dengan error handling"""
         try:
             self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element)
-            time.sleep(0.5)
+            time.sleep(1)
             self._log("✅ ✅ Element scrolled into view", "SUCCESS")
             return True
         except Exception as e:
-            self._log(f"⚠️ ⚠️ Failed to scroll element: {str(e)[:100]}...", "WARNING")
+            self._log(f"⚠️ ⚠️ Failed to scroll element: {str(e)}", "WARNING")
             return False
 
-    def _click_element_robust(self, element, element_name: str = "element") -> bool:
-        """Robust click dengan multiple fallback methods dan stale element protection"""
-        if not element:
-            self._log(f"❌ ❌ Cannot click {element_name}: element is None", "ERROR")
-            return False
-        
-        # Method 1: Regular click
+    def _click_element_robust(self, element, element_name: str) -> bool:
+        """Click element dengan multiple strategies"""
         try:
+            # Strategy 1: Regular click
             self._log(f"🖱️ Attempting regular click on {element_name}...")
             element.click()
             self._log(f"✅ ✅ CLICK SUCCESS: Regular click on {element_name}", "SUCCESS")
             return True
+            
+        except ElementClickInterceptedException:
+            self._log(f"⚠️ ⚠️ Regular click failed on {element_name}: Element intercepted", "WARNING")
+            
+            # Strategy 2: JavaScript click
+            try:
+                self._log(f"🖱️ Attempting JavaScript click on {element_name}...")
+                self.driver.execute_script("arguments[0].click();", element)
+                self._log(f"✅ ✅ CLICK SUCCESS: JavaScript click on {element_name}", "SUCCESS")
+                return True
+            except Exception as e:
+                self._log(f"⚠️ ⚠️ JavaScript click failed on {element_name}: {str(e)}", "WARNING")
+                
         except StaleElementReferenceException:
             self._log(f"⚠️ ⚠️ Element became stale during click: {element_name}", "WARNING")
             return False
-        except ElementClickInterceptedException as e:
-            self._log(f"⚠️ ⚠️ Regular click failed on {element_name}: {str(e)[:100]}...", "WARNING")
+            
         except Exception as e:
-            self._log(f"⚠️ ⚠️ Regular click error on {element_name}: {str(e)[:100]}...", "WARNING")
-        
-        # Method 2: JavaScript click
-        try:
-            self._log(f"🖱️ Attempting JavaScript click on {element_name}...")
-            self.driver.execute_script("arguments[0].click();", element)
-            self._log(f"✅ ✅ CLICK SUCCESS: JavaScript click on {element_name}", "SUCCESS")
-            return True
-        except StaleElementReferenceException:
-            self._log(f"⚠️ ⚠️ Element became stale during JS click: {element_name}", "WARNING")
-            return False
-        except Exception as e:
-            self._log(f"⚠️ ⚠️ JavaScript click error on {element_name}: {str(e)[:100]}...", "WARNING")
-        
-        # Method 3: ActionChains click
-        try:
-            self._log(f"🖱️ Attempting ActionChains click on {element_name}...")
-            ActionChains(self.driver).move_to_element(element).click().perform()
-            self._log(f"✅ ✅ CLICK SUCCESS: ActionChains click on {element_name}", "SUCCESS")
-            return True
-        except StaleElementReferenceException:
-            self._log(f"⚠️ ⚠️ Element became stale during ActionChains: {element_name}", "WARNING")
-            return False
-        except Exception as e:
-            self._log(f"⚠️ ⚠️ ActionChains click error on {element_name}: {str(e)[:100]}...", "WARNING")
-        
-        # Method 4: Send ENTER key
-        try:
-            self._log(f"🖱️ Attempting ENTER key on {element_name}...")
-            element.send_keys(Keys.ENTER)
-            self._log(f"✅ ✅ CLICK SUCCESS: ENTER key on {element_name}", "SUCCESS")
-            return True
-        except StaleElementReferenceException:
-            self._log(f"⚠️ ⚠️ Element became stale during ENTER: {element_name}", "WARNING")
-            return False
-        except Exception as e:
-            self._log(f"⚠️ ⚠️ ENTER key error on {element_name}: {str(e)[:100]}...", "WARNING")
-        
-        # Method 5: Send SPACE key
-        try:
-            self._log(f"🖱️ Attempting SPACE key on {element_name}...")
-            element.send_keys(Keys.SPACE)
-            self._log(f"✅ ✅ CLICK SUCCESS: SPACE key on {element_name}", "SUCCESS")
-            return True
-        except StaleElementReferenceException:
-            self._log(f"⚠️ ⚠️ Element became stale during SPACE: {element_name}", "WARNING")
-            return False
-        except Exception as e:
-            self._log(f"⚠️ ⚠️ SPACE key error on {element_name}: {str(e)[:100]}...", "WARNING")
-        
-        self._log(f"❌ ❌ All click methods failed for {element_name}", "ERROR")
-        return False
-
-    def _validate_composer_open(self) -> bool:
-        """Validate that composer is actually open - more lenient approach"""
-        self._log("🔍 🔍 VALIDATING: Checking if composer is really open...")
-        
-        indicators_found = 0
-        unique_indicators = set()
-        
-        for selector in self.selectors['composer_indicators']:
+            self._log(f"⚠️ ⚠️ Regular click failed on {element_name}: {str(e)}", "WARNING")
+            
+            # Strategy 3: ActionChains
             try:
-                if selector.startswith('//'):
-                    by_method = By.XPATH
-                else:
-                    by_method = By.CSS_SELECTOR
-                
-                elements = self.driver.find_elements(by_method, selector)
-                
-                for element in elements:
-                    if element.is_displayed():
-                        # Count each type of selector only once
-                        selector_type = selector.split('[')[0] if '[' in selector else selector
-                        if selector_type not in unique_indicators:
-                            unique_indicators.add(selector_type)
-                            indicators_found += 1
-                        
-            except Exception:
-                continue
-        
-        self._log(f"🔍 Found {indicators_found} composer indicators")
-        
-        # More lenient validation - accept if ANY indicators found
-        if indicators_found >= 1:
-            self._log("✅ ✅ VALIDATION SUCCESS: Composer is open", "SUCCESS")
-            return True
-        else:
-            self._log(f"❌ ❌ VALIDATION FAILED: Composer not open ({indicators_found} indicators found)", "ERROR")
-            return False
-
-    def _open_composer_aggressively(self) -> bool:
-        """Open Facebook composer dengan multiple strategies - return True by default"""
-        self._log("🎯 🎯 STEP 1: Looking for 'What's on your mind' click element...")
-        
-        # Strategy 1: Find and click the main composer trigger
-        click_element = self._find_element_with_retry(self.selectors['status_click_element'])
-        
-        if click_element:
-            self._log("✅ ✅ Found 'What's on your mind' click element", "SUCCESS")
-            self._log("🖱️ Clicking 'What's on your mind' element...")
-            
-            # Dismiss overlays first
-            self._dismiss_overlays()
-            
-            # Scroll into view
-            self._scroll_element_into_view(click_element)
-            
-            # Try to click
-            if self._click_element_robust(click_element, "'What's on your mind' click"):
-                time.sleep(2)  # Wait for composer to open
-                
-                # Validate composer opened
-                if self._validate_composer_open():
-                    return True
-                else:
-                    self._log("⚠️ ⚠️ Composer not opened after click, trying alternative strategies...", "WARNING")
-            else:
-                self._log("⚠️ ⚠️ Failed to click 'What's on your mind' element", "WARNING")
-        else:
-            self._log("⚠️ ⚠️ Could not find 'What's on your mind' click element", "WARNING")
-        
-        # Strategy 2: Look for composer directly (maybe already open)
-        self._log("🎯 🎯 STRATEGY 2: Looking for composer directly...")
-        if self._validate_composer_open():
-            return True
-        
-        # Strategy 3: Try page interaction to trigger composer
-        self._log("🎯 🎯 STRATEGY 3: Trying page interaction to trigger composer...")
-        try:
-            # Click on page body and try keyboard shortcut
-            body = self.driver.find_element(By.TAG_NAME, "body")
-            body.click()
-            time.sleep(1)
-            
-            # Try Ctrl+Shift+P (Facebook shortcut for post)
-            ActionChains(self.driver).key_down(Keys.CONTROL).key_down(Keys.SHIFT).send_keys('p').key_up(Keys.SHIFT).key_up(Keys.CONTROL).perform()
-            time.sleep(2)
-            
-            if self._validate_composer_open():
+                self._log(f"🖱️ Attempting ActionChains click on {element_name}...")
+                ActionChains(self.driver).move_to_element(element).click().perform()
+                self._log(f"✅ ✅ CLICK SUCCESS: ActionChains click on {element_name}", "SUCCESS")
                 return True
-        except Exception as e:
-            self._log(f"Strategy 3 failed: {str(e)[:50]}...", "DEBUG")
+            except Exception as e:
+                self._log(f"⚠️ ⚠️ ActionChains click failed on {element_name}: {str(e)}", "WARNING")
         
-        # Strategy 4: Try direct URL navigation
-        self._log("🎯 🎯 STRATEGY 4: Trying direct URL navigation...")
-        try:
-            current_url = self.driver.current_url
-            if "facebook.com" in current_url and not current_url.endswith("/"):
-                self.driver.get(current_url + "?sk=h_chr")
-                time.sleep(3)
-                
-                if self._validate_composer_open():
-                    return True
-        except Exception as e:
-            self._log(f"Strategy 4 failed: {str(e)[:50]}...", "DEBUG")
-        
-        # Strategy 5: Return True anyway - proceed with best effort
-        self._log("🎯 🎯 STRATEGY 5: Proceeding with best effort approach...", "WARNING")
-        return True  # Don't fail completely, try to continue
+        return False
 
     def load_cookies(self) -> bool:
         """Load cookies dari file JSON"""
@@ -602,9 +433,11 @@ class FacebookUploader:
                 self._log("File cookies kosong", "WARNING")
                 return False
             
-            self.driver.get("https://www.facebook.com")
+            # Navigate ke Facebook dulu
+            self.driver.get(self.facebook_url)
             time.sleep(2)
             
+            # Add cookies
             cookies_added = 0
             for cookie in cookies:
                 try:
@@ -644,7 +477,6 @@ class FacebookUploader:
         """Simpan cookies ke file JSON"""
         try:
             cookies = self.driver.get_cookies()
-            
             cookies_data = {
                 "timestamp": int(time.time()),
                 "cookies": cookies
@@ -672,7 +504,7 @@ class FacebookUploader:
     def check_login_required(self) -> bool:
         """Cek apakah perlu login"""
         current_url = self.driver.current_url
-        return "login" in current_url or "passport" in current_url
+        return "login" in current_url or "checkpoint" in current_url
 
     def wait_for_login(self, timeout: int = 180):
         """Tunggu user login manual"""
@@ -684,7 +516,7 @@ class FacebookUploader:
         while time.time() - start_time < timeout:
             current_url = self.driver.current_url
             
-            if not ("login" in current_url or "passport" in current_url):
+            if not ("login" in current_url or "checkpoint" in current_url):
                 self._log("Login berhasil!", "SUCCESS")
                 self.save_cookies()
                 return True
@@ -705,40 +537,102 @@ class FacebookUploader:
                 self.driver.save_screenshot(str(screenshot_path))
                 self._log(f"Screenshot saved: {screenshot_path.name}", "INFO")
                 return str(screenshot_path)
-            else:
-                self._log("Driver tidak tersedia untuk screenshot", "WARNING")
-                return None
         except Exception as e:
             self._log(f"Gagal menyimpan screenshot: {str(e)}", "WARNING")
             return None
+
+    def _validate_composer_open(self) -> bool:
+        """Validate apakah composer benar-benar terbuka"""
+        self._log("🔍 VALIDATING: Checking if composer is really open...")
+        
+        indicators_found = 0
+        for selector in self.selectors['composer_indicators']:
+            try:
+                elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
+                indicators_found += len([e for e in elements if e.is_displayed()])
+            except:
+                continue
+        
+        self._log(f"🔍 Found {indicators_found} composer indicators")
+        
+        if indicators_found >= 2:  # Lowered threshold
+            self._log("✅ ✅ VALIDATION SUCCESS: Composer is open", "SUCCESS")
+            return True
+        else:
+            self._log(f"❌ ❌ VALIDATION FAILED: Composer not open ({indicators_found} indicators found)", "ERROR")
+            return False
+
+    def _try_alternative_composer_strategies(self) -> bool:
+        """Try alternative strategies to open composer"""
+        
+        # Strategy 2: Look for composer directly
+        self._log("🎯 STRATEGY 2: Looking for composer directly...")
+        composer_selectors = [
+            "div[role='dialog']",
+            "div[aria-modal='true']",
+            "form[method='post']",
+            "div[data-testid*='composer']"
+        ]
+        
+        for selector in composer_selectors:
+            try:
+                element = self.driver.find_element(By.CSS_SELECTOR, selector)
+                if element.is_displayed():
+                    self._log(f"✅ Found composer with selector: {selector}")
+                    return True
+            except:
+                continue
+        
+        if self._validate_composer_open():
+            return True
+        
+        # Strategy 3: Try page interaction
+        self._log("🎯 STRATEGY 3: Trying page interaction to trigger composer...")
+        try:
+            # Try clicking on page body
+            body = self.driver.find_element(By.TAG_NAME, "body")
+            body.click()
+            time.sleep(1)
+            
+            # Try pressing Tab to navigate
+            ActionChains(self.driver).send_keys(Keys.TAB).perform()
+            time.sleep(1)
+            
+        except:
+            pass
+        
+        if self._validate_composer_open():
+            return True
+        
+        # Strategy 4: Try direct URL navigation
+        self._log("🎯 STRATEGY 4: Trying direct URL navigation...")
+        try:
+            self.driver.get("https://www.facebook.com/?sk=h_chr")
+            time.sleep(3)
+        except:
+            pass
+        
+        return self._validate_composer_open()
 
     def upload_status(self, status_text: str = "", media_path: str = "") -> Dict[str, Any]:
         """
         Upload status ke Facebook dengan dukungan media
         
         Args:
-            status_text: Text status (opsional jika ada media)
-            media_path: Path ke file media - video atau gambar (opsional)
+            status_text: Text untuk status
+            media_path: Path ke file media (video/gambar)
             
         Returns:
             Dict dengan status upload
         """
-        
-        # Validasi input
-        if not status_text.strip() and not media_path.strip():
-            return {
-                "success": False,
-                "message": "Status text atau media path diperlukan"
-            }
-        
-        # Validasi file media jika ada
-        if media_path and not os.path.exists(media_path):
-            return {
-                "success": False,
-                "message": f"File media tidak ditemukan: {media_path}"
-            }
-        
         try:
+            # Validasi input
+            if not status_text.strip() and not media_path:
+                raise ValueError("Status text atau media path diperlukan")
+            
+            if media_path and not os.path.exists(media_path):
+                raise FileNotFoundError(f"File media tidak ditemukan: {media_path}")
+            
             # Setup driver
             self._setup_driver()
             
@@ -750,10 +644,10 @@ class FacebookUploader:
             self.driver.get(self.facebook_url)
             time.sleep(3)
             
-            # Take screenshot before starting
+            # Take screenshot for debugging
             self.take_screenshot(f"facebook_before_post_{int(time.time())}.png")
             
-            # Cek apakah perlu login
+            # Cek login
             if self.check_login_required():
                 if cookies_loaded:
                     self._log("Cookies dimuat tapi masih perlu login, refresh halaman...", "WARNING")
@@ -766,163 +660,172 @@ class FacebookUploader:
                     time.sleep(3)
             
             # Determine mode
-            if status_text.strip() and media_path.strip():
+            if status_text and media_path:
                 mode = "TEXT + MEDIA"
-            elif media_path.strip():
+            elif media_path:
                 mode = "MEDIA ONLY"
             else:
                 mode = "TEXT ONLY"
             
-            self._log(f"🎯 🎯 MODE: {mode}")
+            self._log(f"🎯 MODE: {mode}")
             
-            # Open composer
-            if not self._open_composer_aggressively():
-                raise Exception("Gagal membuka composer Facebook")
+            # STEP 1: Open composer
+            self._log("🎯 STEP 1: Looking for 'What's on your mind' click element...")
             
-            # Handle different modes
-            if mode in ["TEXT + MEDIA", "MEDIA ONLY"]:
-                # STEP 2: Add media FIRST
-                self._log("🎯 🎯 STEP 2: Adding media FIRST...")
+            whats_on_mind = self._find_element_with_retry(self.selectors['whats_on_mind_click'])
+            
+            if not whats_on_mind:
+                self._log("⚠️ ⚠️ ⚠️ Could not find 'What's on your mind' click element", "WARNING")
                 
-                # Find Photo/Video button with retry and re-finding after overlay dismissal
-                photo_video_button = None
-                max_attempts = 3
+                # Try alternative strategies
+                if not self._try_alternative_composer_strategies():
+                    raise NoSuchElementException("Tidak dapat membuka composer Facebook")
+            else:
+                self._log("✅ ✅ Found 'What's on your mind' click element", "SUCCESS")
                 
-                for attempt in range(max_attempts):
-                    if attempt > 0:
-                        self._log(f"🔄 Attempt {attempt + 1}/{max_attempts} to find Photo/Video button...")
-                        time.sleep(1)
+                # Click to open composer
+                self._log("🖱️ Clicking 'What's on your mind' element...")
+                
+                # Dismiss overlays first
+                self._dismiss_overlays()
+                
+                # Scroll and click
+                self._scroll_to_element(whats_on_mind)
+                
+                if not self._click_element_robust(whats_on_mind, "'What's on your mind' click"):
+                    self._log("⚠️ ⚠️ ⚠️ Composer not opened after click, trying alternative strategies...", "WARNING")
+                    if not self._try_alternative_composer_strategies():
+                        raise NoSuchElementException("Tidak dapat membuka composer Facebook")
+                
+                # Validate composer is open
+                time.sleep(2)
+                if not self._validate_composer_open():
+                    self._log("⚠️ ⚠️ ⚠️ Composer not opened after click, trying alternative strategies...", "WARNING")
+                    if not self._try_alternative_composer_strategies():
+                        raise NoSuchElementException("Tidak dapat membuka composer Facebook")
+            
+            # STEP 2: Handle media upload if needed
+            if media_path:
+                self._log("🎯 STEP 2: Adding media FIRST...")
+                
+                # Find Photo/Video button with retry
+                for attempt in range(3):
+                    self._log(f"📸 Attempt {attempt + 1}/3 to find Photo/Video button...")
                     
                     # Dismiss overlays before each attempt
                     self._dismiss_overlays()
                     
                     # Re-find the element to avoid stale reference
-                    photo_video_button = self._find_element_with_retry(self.selectors['photo_video_button'])
+                    photo_video_button = self._find_element_with_retry(self.selectors['photo_video_button'], timeout=5)
                     
                     if photo_video_button:
                         self._log("✅ ✅ Found Photo/Video button", "SUCCESS")
                         
-                        # Scroll into view
-                        self._scroll_element_into_view(photo_video_button)
+                        # Scroll and click
+                        self._scroll_to_element(photo_video_button)
                         
-                        # Try to click
                         if self._click_element_robust(photo_video_button, "Photo/Video button"):
-                            time.sleep(2)  # Wait for file dialog
+                            self._log("✅ ✅ Photo/Video button clicked successfully", "SUCCESS")
                             break
                         else:
-                            self._log("⚠️ ⚠️ Failed to click Photo/Video button, retrying...", "WARNING")
-                            photo_video_button = None
+                            self._log(f"⚠️ ⚠️ Failed to click Photo/Video button (attempt {attempt + 1})", "WARNING")
+                            time.sleep(2)
                     else:
-                        self._log("⚠️ ⚠️ Photo/Video button not found, retrying...", "WARNING")
+                        self._log(f"⚠️ ⚠️ Photo/Video button not found (attempt {attempt + 1})", "WARNING")
+                        time.sleep(2)
+                else:
+                    raise NoSuchElementException("Gagal mengklik tombol Photo/Video")
                 
-                if not photo_video_button:
-                    raise Exception("Gagal mengklik tombol Photo/Video")
+                # Wait for file dialog and upload
+                time.sleep(2)
                 
-                # Find and use file input
+                # Find file input
                 file_input = self._find_element_with_retry(self.selectors['file_input'], timeout=10)
                 if not file_input:
-                    raise Exception("Input file tidak ditemukan")
+                    raise NoSuchElementException("Input file tidak ditemukan")
                 
                 # Upload file
                 abs_path = os.path.abspath(media_path)
                 file_input.send_keys(abs_path)
+                
                 self._log("✅ ✅ MEDIA VALIDATION SUCCESS: Media uploaded", "SUCCESS")
                 self._log("✅ ✅ STEP 2 COMPLETE: Media uploaded successfully", "SUCCESS")
                 
                 # Wait for media to process
                 time.sleep(3)
-                
-                # STEP 3: Add status text AFTER media (if provided)
-                if status_text.strip():
-                    self._log("🎯 🎯 STEP 3: Adding status text AFTER media...")
-                    
-                    # Find text input (different selectors after media upload)
-                    text_input = self._find_element_with_retry(self.selectors['status_text_input'])
-                    if text_input:
-                        self._log("✅ ✅ Found text input", "SUCCESS")
-                        
-                        # Scroll into view
-                        self._scroll_element_into_view(text_input)
-                        
-                        # Try to click and add text
-                        if self._click_element_robust(text_input, "text input"):
-                            time.sleep(1)
-                            
-                            # Clear and add text
-                            try:
-                                text_input.clear()
-                                text_input.send_keys(status_text)
-                                self._log("✅ ✅ STEP 3 COMPLETE: Status text added", "SUCCESS")
-                            except StaleElementReferenceException:
-                                # Re-find and try again
-                                text_input = self._find_element_with_retry(self.selectors['status_text_input'])
-                                if text_input:
-                                    text_input.clear()
-                                    text_input.send_keys(status_text)
-                                    self._log("✅ ✅ STEP 3 COMPLETE: Status text added (retry)", "SUCCESS")
-                        else:
-                            self._log("⚠️ ⚠️ Could not click text input, but continuing...", "WARNING")
-                    else:
-                        self._log("⚠️ ⚠️ Text input not found after media upload", "WARNING")
             
-            else:  # TEXT ONLY mode
-                self._log("🎯 🎯 STEP 2: Adding text only...")
+            # STEP 3: Add text if provided
+            if status_text.strip():
+                if media_path:
+                    self._log("🎯 STEP 3: Adding status text AFTER media...")
+                else:
+                    self._log("🎯 STEP 3: Adding status text...")
                 
                 # Find text input
                 text_input = self._find_element_with_retry(self.selectors['status_text_input'])
-                if not text_input:
-                    raise Exception("Input text tidak ditemukan")
-                
-                # Add text
-                self._scroll_element_into_view(text_input)
-                if self._click_element_robust(text_input, "text input"):
-                    time.sleep(1)
-                    text_input.clear()
-                    text_input.send_keys(status_text)
-                    self._log("✅ ✅ STEP 2 COMPLETE: Text added", "SUCCESS")
+                if text_input:
+                    self._log("✅ ✅ Found text input", "SUCCESS")
+                    
+                    try:
+                        # Click and add text
+                        if self._click_element_robust(text_input, "text input"):
+                            time.sleep(1)
+                            
+                            # Clear existing text and add new
+                            text_input.send_keys(Keys.CONTROL + "a")
+                            text_input.send_keys(Keys.BACKSPACE)
+                            text_input.send_keys(status_text)
+                            
+                            self._log(f"✅ ✅ TEXT SUCCESS: Status text added", "SUCCESS")
+                        else:
+                            self._log("⚠️ ⚠️ Failed to click text input", "WARNING")
+                            
+                    except StaleElementReferenceException:
+                        self._log("⚠️ ⚠️ Text input became stale, trying to re-find...", "WARNING")
+                        # Try to re-find text input
+                        text_input = self._find_element_with_retry(self.selectors['status_text_input'])
+                        if text_input:
+                            text_input.send_keys(status_text)
+                            self._log("✅ ✅ TEXT SUCCESS: Status text added (retry)", "SUCCESS")
                 else:
-                    raise Exception("Gagal mengklik input text")
+                    self._log("⚠️ ⚠️ Text input tidak ditemukan", "WARNING")
             
-            # FINAL STEP: Post the status
-            self._log("🎯 🎯 FINAL STEP: Posting status...")
+            # STEP 4: Post
+            self._log("🎯 STEP 4: Publishing post...")
             
-            # Find and click post button
             post_button = self._find_element_with_retry(self.selectors['post_button'])
             if not post_button:
-                raise Exception("Tombol Post tidak ditemukan")
+                raise NoSuchElementException("Tombol Post tidak ditemukan")
             
-            self._scroll_element_into_view(post_button)
             if self._click_element_robust(post_button, "Post button"):
-                time.sleep(5)  # Wait for post to complete
+                self._log("✅ ✅ POST SUCCESS: Post button clicked", "SUCCESS")
                 
-                # Check if we're back to feed (indicates success)
+                # Wait and check for success
+                time.sleep(5)
+                
+                # Check if we're back to feed (success indicator)
                 current_url = self.driver.current_url
-                if "facebook.com" in current_url and not any(x in current_url for x in ["create", "composer", "post"]):
+                if "facebook.com" in current_url and "composer" not in current_url:
                     self._log("✅ ✅ Post berhasil (kembali ke feed)", "SUCCESS")
-                    success = True
+                    
+                    return {
+                        "success": True,
+                        "message": "Status berhasil dipost",
+                        "mode": mode,
+                        "status_text": status_text,
+                        "media_path": media_path
+                    }
                 else:
-                    self._log("✅ ✅ Post kemungkinan berhasil", "SUCCESS")
-                    success = True
+                    self._log("⚠️ ⚠️ Post mungkin berhasil tapi tidak dapat dikonfirmasi", "WARNING")
+                    return {
+                        "success": True,
+                        "message": "Post kemungkinan berhasil",
+                        "mode": mode,
+                        "status_text": status_text,
+                        "media_path": media_path
+                    }
             else:
                 raise Exception("Gagal mengklik tombol Post")
-            
-            if success:
-                self._log("✅ Status berhasil dipost ke Facebook!", "SUCCESS")
-                return {
-                    "success": True,
-                    "message": "Status berhasil dipost",
-                    "status_text": status_text,
-                    "media_path": media_path,
-                    "mode": mode
-                }
-            else:
-                return {
-                    "success": False,
-                    "message": "Post mungkin berhasil tapi tidak dapat dikonfirmasi",
-                    "status_text": status_text,
-                    "media_path": media_path,
-                    "mode": mode
-                }
                 
         except Exception as e:
             error_msg = f"Upload status gagal: {str(e)}"
@@ -957,14 +860,10 @@ class FacebookUploader:
         Returns:
             Dict dengan status upload
         """
-        
-        if not os.path.exists(video_path):
-            return {
-                "success": False,
-                "message": f"File video tidak ditemukan: {video_path}"
-            }
-        
         try:
+            if not os.path.exists(video_path):
+                raise FileNotFoundError(f"File video tidak ditemukan: {video_path}")
+            
             # Setup driver
             self._setup_driver()
             
@@ -976,7 +875,7 @@ class FacebookUploader:
             self.driver.get(self.reels_create_url)
             time.sleep(5)
             
-            # Cek apakah perlu login
+            # Cek login
             if self.check_login_required():
                 if cookies_loaded:
                     self._log("Cookies dimuat tapi masih perlu login, refresh halaman...", "WARNING")
@@ -992,74 +891,122 @@ class FacebookUploader:
             self._log("Memulai upload video reels...")
             
             # Find upload input
-            upload_input = self._find_element_with_retry(self.selectors['reels_upload_input'])
+            upload_selectors = [
+                "input[type='file'][accept*='video']",
+                "input[type='file']",
+                "input[accept*='video']"
+            ]
+            
+            upload_input = None
+            for selector in upload_selectors:
+                try:
+                    upload_input = self.driver.find_element(By.CSS_SELECTOR, selector)
+                    if upload_input:
+                        break
+                except:
+                    continue
+            
             if not upload_input:
-                raise Exception("Input upload tidak ditemukan")
+                raise NoSuchElementException("Input upload tidak ditemukan")
             
             # Upload file
+            self._log("Input upload ditemukan. Mengirim file...")
             abs_path = os.path.abspath(video_path)
             upload_input.send_keys(abs_path)
-            self._log("✅ Input upload ditemukan. Mengirim file...", "SUCCESS")
-            self._log("✅ File video berhasil dikirim ke input.", "SUCCESS")
+            self._log("File video berhasil dikirim ke input.", "SUCCESS")
             
-            # Wait for upload to process
+            # Wait for processing
             time.sleep(10)
             
-            # Click Next buttons (usually 2 times)
-            for i in range(1, 3):
-                next_button = self._find_element_with_retry(self.selectors['reels_next_button'])
-                if next_button:
-                    if self._click_element_robust(next_button, f"Next button (step {i})"):
-                        self._log(f"✅ Tombol 'Next' berhasil diklik (index {i})!", "SUCCESS")
-                        time.sleep(3)
-                    else:
-                        self._log(f"⚠️ Gagal klik tombol Next {i}", "WARNING")
-                else:
-                    self._log(f"⚠️ Tombol Next {i} tidak ditemukan", "WARNING")
+            # Navigate through steps
+            next_selectors = [
+                "div[aria-label='Next']",
+                "div[aria-label='Berikutnya']",
+                "button[aria-label='Next']",
+                "button[aria-label='Berikutnya']",
+                "div[role='button']:contains('Next')",
+                "div[role='button']:contains('Berikutnya')"
+            ]
+            
+            # First Next
+            for i, selector in enumerate(next_selectors):
+                try:
+                    next_button = WebDriverWait(self.driver, 5).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                    )
+                    next_button.click()
+                    self._log(f"Tombol 'Next' berhasil diklik (index {i+1})!", "SUCCESS")
+                    time.sleep(3)
+                    break
+                except:
+                    continue
+            
+            # Second Next
+            for i, selector in enumerate(next_selectors):
+                try:
+                    next_button = WebDriverWait(self.driver, 5).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                    )
+                    next_button.click()
+                    self._log(f"Tombol 'Next' berhasil diklik (index {i+1})!", "SUCCESS")
+                    time.sleep(3)
+                    break
+                except:
+                    continue
             
             # Add description if provided
             if description.strip():
-                desc_input = self._find_element_with_retry(self.selectors['reels_description_input'])
-                if desc_input:
-                    if self._click_element_robust(desc_input, "description input"):
-                        desc_input.clear()
-                        desc_input.send_keys(description)
-                        self._log("✅ Deskripsi berhasil diisi", "SUCCESS")
-                    else:
-                        self._log("⚠️ Gagal mengisi deskripsi", "WARNING")
-                else:
-                    self._log("⚠️ Input deskripsi tidak ditemukan", "WARNING")
-            
-            # Click Publish button
-            publish_button = self._find_element_with_retry(self.selectors['reels_publish_button'])
-            if publish_button:
-                if self._click_element_robust(publish_button, "Publish button"):
-                    self._log("✅ Tombol 'Publish' berhasil diklik!", "SUCCESS")
-                    time.sleep(5)
-                    
-                    self._log("✅ Upload video reels berhasil!", "SUCCESS")
-                    success = True
-                else:
-                    raise Exception("Gagal mengklik tombol Publish")
-            else:
-                raise Exception("Tombol Publish tidak ditemukan")
-            
-            if success:
-                self._log("✅ Reels berhasil diupload ke Facebook!", "SUCCESS")
-                return {
-                    "success": True,
-                    "message": "Reels berhasil diupload",
-                    "video_path": video_path,
-                    "description": description
-                }
-            else:
-                return {
-                    "success": False,
-                    "message": "Upload mungkin berhasil tapi tidak dapat dikonfirmasi",
-                    "video_path": video_path,
-                    "description": description
-                }
+                desc_selectors = [
+                    "div[contenteditable='true'][aria-label*='description']",
+                    "div[contenteditable='true'][aria-label*='deskripsi']",
+                    "textarea[placeholder*='description']",
+                    "div[contenteditable='true']"
+                ]
                 
+                for selector in desc_selectors:
+                    try:
+                        desc_input = self.driver.find_element(By.CSS_SELECTOR, selector)
+                        if desc_input.is_displayed():
+                            desc_input.click()
+                            desc_input.send_keys(description)
+                            self._log("Deskripsi berhasil diisi", "SUCCESS")
+                            break
+                    except:
+                        continue
+            
+            # Publish
+            publish_selectors = [
+                "div[aria-label='Publish']",
+                "div[aria-label='Terbitkan']",
+                "button[aria-label='Publish']",
+                "button[aria-label='Terbitkan']",
+                "div[role='button']:contains('Publish')",
+                "div[role='button']:contains('Terbitkan')"
+            ]
+            
+            for i, selector in enumerate(publish_selectors):
+                try:
+                    publish_button = WebDriverWait(self.driver, 5).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                    )
+                    publish_button.click()
+                    self._log(f"Tombol 'Publish' berhasil diklik (index {i+1})!", "SUCCESS")
+                    break
+                except:
+                    continue
+            
+            # Wait for completion
+            time.sleep(10)
+            
+            self._log("Upload video reels berhasil!", "SUCCESS")
+            
+            return {
+                "success": True,
+                "message": "Reels berhasil diupload",
+                "video_path": video_path,
+                "description": description
+            }
+            
         except Exception as e:
             error_msg = f"Upload reels gagal: {str(e)}"
             self._log(error_msg, "ERROR")
@@ -1076,7 +1023,7 @@ class FacebookUploader:
         
         finally:
             if self.driver:
-                self._log("Menutup browser...")
+                self._log("Closing browser...")
                 try:
                     self.driver.quit()
                 except:
@@ -1099,7 +1046,7 @@ class FacebookUploader:
                 cookies = cookies_data if isinstance(cookies_data, list) else []
                 timestamp = 0
             
-            # Cek cookies yang expired
+            # Check expired cookies
             current_time = time.time()
             valid_cookies = []
             expired_cookies = []
@@ -1116,7 +1063,7 @@ class FacebookUploader:
                     else:
                         expired_cookies.append(cookie)
                 else:
-                    valid_cookies.append(cookie)  # Session cookies
+                    valid_cookies.append(cookie)
             
             self._log(f"Total cookies: {len(cookies)}", "INFO")
             self._log(f"Valid cookies: {len(valid_cookies)}", "SUCCESS")
@@ -1145,11 +1092,11 @@ class FacebookUploader:
 def main():
     """Main function untuk CLI"""
     parser = argparse.ArgumentParser(description="Facebook Uploader (Status & Reels)")
-    parser.add_argument("--type", choices=['status', 'reels'], help="Jenis upload: status atau reels")
-    parser.add_argument("--status", help="Status text untuk Facebook")
-    parser.add_argument("--media", help="Path ke file media (video/gambar) untuk status")
-    parser.add_argument("--video", help="Path ke file video untuk reels")
-    parser.add_argument("--description", default="", help="Deskripsi untuk reels")
+    parser.add_argument("--type", "-t", choices=['status', 'reels'], help="Jenis upload")
+    parser.add_argument("--status", "-s", help="Status text untuk Facebook")
+    parser.add_argument("--media", "-m", help="Path ke file media (video/gambar) untuk status")
+    parser.add_argument("--video", "-v", help="Path ke file video untuk reels")
+    parser.add_argument("--description", "-d", default="", help="Deskripsi untuk reels")
     parser.add_argument("--headless", action="store_true", help="Jalankan dalam mode headless")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--clear-cookies", action="store_true", help="Hapus cookies")
@@ -1168,119 +1115,121 @@ def main():
         uploader.check_cookies_status()
         return
     
-    if args.type == 'status':
-        if not args.status and not args.media:
-            print(f"{Fore.RED}❌ Status text atau media diperlukan untuk Facebook status")
-            sys.exit(1)
-        
-        if args.media and not os.path.exists(args.media):
-            print(f"{Fore.RED}❌ File media tidak ditemukan: {args.media}")
-            sys.exit(1)
-        
-        result = uploader.upload_status(args.status or "", args.media or "")
-        
-        if result["success"]:
-            print(f"{Fore.GREEN}🎉 Facebook status berhasil!")
-        else:
-            print(f"{Fore.RED}❌ Facebook status gagal: {result['message']}")
-            sys.exit(1)
-    
-    elif args.type == 'reels':
-        if not args.video:
-            print(f"{Fore.RED}❌ Video path diperlukan untuk Facebook Reels")
-            sys.exit(1)
-        if not os.path.exists(args.video):
-            print(f"{Fore.RED}❌ File video tidak ditemukan: {args.video}")
-            sys.exit(1)
-        
-        result = uploader.upload_reels(args.video, args.description)
-        
-        if result["success"]:
-            print(f"{Fore.GREEN}🎉 Facebook Reels berhasil!")
-        else:
-            print(f"{Fore.RED}❌ Facebook Reels gagal: {result['message']}")
-            sys.exit(1)
-    
-    else:
-        # Interactive mode
-        print(f"{Fore.BLUE}📘 Facebook Uploader")
-        print("=" * 40)
-        print(f"{Fore.YELLOW}🔥 Status + Reels + Media Support")
-        print()
-        
-        while True:
-            print(f"\n{Fore.YELLOW}Pilih jenis upload:")
-            print("1. 📝 Status Facebook (Text/Media)")
-            print("2. 🎬 Reels Facebook (Video)")
-            print("3. 🍪 Cek status cookies")
-            print("4. 🗑️ Hapus cookies")
-            print("5. ❌ Keluar")
+    if args.type:
+        if args.type == 'status':
+            if not args.status and not args.media:
+                print(f"{Fore.RED}❌ Status text atau media diperlukan untuk Facebook status")
+                sys.exit(1)
             
-            choice = input(f"\n{Fore.WHITE}Pilihan (1-5): ").strip()
+            if args.media and not os.path.exists(args.media):
+                print(f"{Fore.RED}❌ File media tidak ditemukan: {args.media}")
+                sys.exit(1)
             
-            if choice == "1":
-                print(f"\n{Fore.YELLOW}📝 Facebook Status Options:")
-                print("1. Text Only")
-                print("2. Text + Media")
-                print("3. Media Only")
-                
-                status_choice = input(f"{Fore.WHITE}Pilihan (1-3): ").strip()
-                
-                status_text = ""
-                media_path = ""
-                
-                if status_choice in ["1", "2"]:
-                    status_text = input(f"{Fore.CYAN}Status Facebook: ").strip()
-                    if not status_text and status_choice == "1":
-                        print(f"{Fore.RED}❌ Status text tidak boleh kosong untuk text only!")
-                        continue
-                
-                if status_choice in ["2", "3"]:
-                    media_path = input(f"{Fore.CYAN}Path ke file media (video/gambar): ").strip()
-                    if not os.path.exists(media_path):
-                        print(f"{Fore.RED}❌ File media tidak ditemukan!")
-                        continue
-                
-                if not status_text and not media_path:
-                    print(f"{Fore.RED}❌ Minimal status text atau media diperlukan!")
-                    continue
-                
-                result = uploader.upload_status(status_text, media_path)
-                
-                if result["success"]:
-                    print(f"{Fore.GREEN}🎉 Facebook status berhasil!")
-                else:
-                    print(f"{Fore.RED}❌ Facebook status gagal: {result['message']}")
+            result = uploader.upload_status(args.status or "", args.media or "")
             
-            elif choice == "2":
-                video_path = input(f"{Fore.CYAN}Path ke file video: ").strip()
-                if not os.path.exists(video_path):
-                    print(f"{Fore.RED}❌ File tidak ditemukan!")
-                    continue
-                
-                description = input(f"{Fore.CYAN}Deskripsi Facebook Reels (opsional): ").strip()
-                
-                result = uploader.upload_reels(video_path, description)
-                
-                if result["success"]:
-                    print(f"{Fore.GREEN}🎉 Facebook Reels berhasil!")
-                else:
-                    print(f"{Fore.RED}❌ Facebook Reels gagal: {result['message']}")
-            
-            elif choice == "3":
-                uploader.check_cookies_status()
-            
-            elif choice == "4":
-                confirm = input(f"{Fore.YELLOW}Yakin ingin menghapus cookies? (y/N): ").strip().lower()
-                if confirm == 'y':
-                    uploader.clear_cookies()
-            
-            elif choice == "5":
-                print(f"{Fore.YELLOW}👋 Sampai jumpa!")
-                break
-            
+            if result["success"]:
+                print(f"{Fore.GREEN}🎉 Facebook status berhasil!")
             else:
-                print(f"{Fore.RED}❌ Pilihan tidak valid!")
+                print(f"{Fore.RED}❌ Facebook status gagal: {result['message']}")
+                sys.exit(1)
+        
+        elif args.type == 'reels':
+            if not args.video:
+                print(f"{Fore.RED}❌ Video path diperlukan untuk Facebook Reels")
+                sys.exit(1)
+            if not os.path.exists(args.video):
+                print(f"{Fore.RED}❌ File video tidak ditemukan: {args.video}")
+                sys.exit(1)
+            
+            result = uploader.upload_reels(args.video, args.description)
+            
+            if result["success"]:
+                print(f"{Fore.GREEN}🎉 Facebook Reels berhasil!")
+            else:
+                print(f"{Fore.RED}❌ Facebook Reels gagal: {result['message']}")
+                sys.exit(1)
+        
+        return
+    
+    # Interactive mode
+    print(f"{Fore.BLUE}📘 Facebook Uploader")
+    print("=" * 40)
+    print(f"{Fore.YELLOW}🔥 Status + Reels Support")
+    print()
+    
+    while True:
+        print(f"\n{Fore.YELLOW}Pilih jenis upload:")
+        print("1. 📝 Facebook Status (Text/Media)")
+        print("2. 🎬 Facebook Reels (Video)")
+        print("3. 🍪 Cek Status Cookies")
+        print("4. 🗑️ Hapus Cookies")
+        print("5. ❌ Keluar")
+        
+        choice = input(f"\n{Fore.WHITE}Pilihan (1-5): ").strip()
+        
+        if choice == "1":
+            print(f"\n{Fore.YELLOW}📝 Facebook Status Options:")
+            print("1. Text Only")
+            print("2. Text + Media")
+            print("3. Media Only")
+            
+            status_choice = input(f"{Fore.WHITE}Pilihan (1-3): ").strip()
+            
+            status_text = ""
+            media_path = ""
+            
+            if status_choice in ["1", "2"]:
+                status_text = input(f"{Fore.CYAN}Status Facebook: ").strip()
+                if not status_text and status_choice == "1":
+                    print(f"{Fore.RED}❌ Status text tidak boleh kosong untuk text only!")
+                    continue
+            
+            if status_choice in ["2", "3"]:
+                media_path = input(f"{Fore.CYAN}Path ke file media (video/gambar): ").strip()
+                if not os.path.exists(media_path):
+                    print(f"{Fore.RED}❌ File media tidak ditemukan!")
+                    continue
+            
+            if not status_text and not media_path:
+                print(f"{Fore.RED}❌ Minimal status text atau media diperlukan!")
+                continue
+            
+            result = uploader.upload_status(status_text, media_path)
+            
+            if result["success"]:
+                print(f"{Fore.GREEN}🎉 Facebook status berhasil!")
+            else:
+                print(f"{Fore.RED}❌ Facebook status gagal: {result['message']}")
+        
+        elif choice == "2":
+            video_path = input(f"{Fore.CYAN}Path ke file video: ").strip()
+            if not os.path.exists(video_path):
+                print(f"{Fore.RED}❌ File tidak ditemukan!")
+                continue
+            
+            description = input(f"{Fore.CYAN}Deskripsi Facebook Reels (opsional): ").strip()
+            
+            result = uploader.upload_reels(video_path, description)
+            
+            if result["success"]:
+                print(f"{Fore.GREEN}🎉 Facebook Reels berhasil!")
+            else:
+                print(f"{Fore.RED}❌ Facebook Reels gagal: {result['message']}")
+        
+        elif choice == "3":
+            uploader.check_cookies_status()
+        
+        elif choice == "4":
+            confirm = input(f"{Fore.YELLOW}Yakin ingin menghapus cookies? (y/N): ").strip().lower()
+            if confirm == 'y':
+                uploader.clear_cookies()
+        
+        elif choice == "5":
+            print(f"{Fore.YELLOW}👋 Sampai jumpa!")
+            break
+        
+        else:
+            print(f"{Fore.RED}❌ Pilihan tidak valid!")
 
 
 if __name__ == "__main__":
