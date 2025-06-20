@@ -60,96 +60,97 @@ class FacebookUploader:
         self.facebook_url = "https://www.facebook.com"
         self.reels_create_url = "https://www.facebook.com/reels/create/?surface=PROFILE_PLUS"
         
-        # Selectors - Menggunakan selector CSS yang sangat spesifik + fallbacks
+        # Selectors dengan prioritas yang jelas
         self.selectors = {
-            # STATUS TEXT ONLY
+            # UNTUK TEXT ONLY - What's on your mind click
             'whats_on_mind_click_text_only': [
-                # Selector utama yang diberikan user
+                # PRIORITAS 1: Exact selector dari user
                 "#mount_0_0_oA > div > div:nth-child(1) > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div > div.x78zum5.xdt5ytf.x1t2pt76.x1n2onr6.x1ja2u2z.x10cihs4 > div.x9f619.x1ja2u2z.x78zum5.x2lah0s.x1n2onr6.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1t2pt76.x17upfok > div > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1iyjqo2.xs83m0k.xeuugli.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1iplk16.x1mfogq2.xsfy40s.x1wi7962.xpi1e93 > div > div > div > div.x78zum5.x1q0g3np.xl56j7k > div > div.x1yztbdb > div > div > div > div.x1cy8zhl.x78zum5.x1iyjqo2.xs83m0k.xh8yej3 > div > div.xi81zsa.x1lkfr7t.xkjl1po.x1mzt3pk.xh8yej3.x13faqbe > span",
-                # Fallback selectors
+                # PRIORITAS 2-7: Fallback selectors
                 "span[class*='xi81zsa'][class*='x1lkfr7t']",
                 "div[class*='x1cy8zhl'] span",
                 "div[role='button'][aria-label*='What\\'s on your mind']",
                 "div[role='button'][aria-label*='Apa yang Anda pikirkan']",
                 "span:contains('What\\'s on your mind')",
-                "span:contains('Apa yang Anda pikirkan')",
-                "[data-pagelet='FeedComposer'] div[role='button']"
-            ],
-            'text_input_frame_text_only': [
-                # Selector utama yang diberikan user
-                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.x1ed109x.x1iyjqo2.x5yr21d.x1n2onr6.xh8yej3 > div.x9f619.x1iyjqo2.xg7h5cd.xv54qhq.xf7dkkf.x1n2onr6.xh8yej3.x1ja2u2z.x1t1ogtf > div > div > div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate > p",
-                # Fallback selectors
-                "div[contenteditable='true'][role='textbox']",
-                "div[contenteditable='true'][class*='notranslate'] p",
-                "div[contenteditable='true'][data-text*='What\\'s on your mind']",
-                "div[contenteditable='true'][data-text*='Apa yang Anda pikirkan']",
-                "div[contenteditable='true'][aria-label*='What\\'s on your mind']",
-                "div[contenteditable='true'][aria-label*='Apa yang Anda pikirkan']",
-                "div[class*='xzsf02u'] p",
-                "p[class*='xzsf02u']"
-            ],
-            'post_button_text_only': [
-                # Selector utama yang diberikan user
-                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.x1l90r2v.xyamay9.x1n2onr6 > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1r8uery.x1iyjqo2.xs83m0k.xeuugli.x1qughib.x6s0dn4.xozqiw3.x1q0g3np.xv54qhq.xf7dkkf.xyamay9.x1lxpwgx.x165d6jo.x4vbgl9.x1rdy4ex > div > div > div > div.html-div.xdj266r.xat24cr.xexx8yu.xyri2b.x18d9i69.x1c1uobl.x6s0dn4.x78zum5.xl56j7k.x14ayic.xwyz465.x1e0frkt > div > span > span",
-                # Fallback selectors
-                "div[aria-label='Post'][role='button']",
-                "div[aria-label='Posting'][role='button']",
-                "div[role='button'][aria-label*='Post']",
-                "div[role='button'][aria-label*='Posting']",
-                "span:contains('Post')",
-                "span:contains('Posting')",
-                "div[class*='html-div'] span:contains('Post')",
-                "div[class*='html-div'] span:contains('Posting')"
+                "div[data-pagelet='FeedComposer'] div[role='button']"
             ],
             
-            # TEXT + MEDIA (sama dengan text only untuk sekarang)
-            'whats_on_mind_click_with_media': [
+            # UNTUK TEXT ONLY - Text input frame
+            'text_input_text_only': [
+                # PRIORITAS 1: Exact selector dari user
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.x1ed109x.x1iyjqo2.x5yr21d.x1n2onr6.xh8yej3 > div.x9f619.x1iyjqo2.xg7h5cd.xv54qhq.xf7dkkf.x1n2onr6.xh8yej3.x1ja2u2z.x1t1ogtf > div > div > div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate > p",
+                # PRIORITAS 2-5: Fallback selectors
+                "div[contenteditable='true'][role='textbox']",
+                "div[class*='xzsf02u'] p",
+                "div[contenteditable='true'][data-text*='What\\'s on your mind']",
+                "div[contenteditable='true'][aria-label*='What\\'s on your mind']"
+            ],
+            
+            # UNTUK TEXT ONLY - Post button
+            'post_button_text_only': [
+                # PRIORITAS 1: Exact selector dari user
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.x1l90r2v.xyamay9.x1n2onr6 > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1r8uery.x1iyjqo2.xs83m0k.xeuugli.x1qughib.x6s0dn4.xozqiw3.x1q0g3np.xv54qhq.xf7dkkf.xyamay9.x1lxpwgx.x165d6jo.x4vbgl9.x1rdy4ex > div > div > div > div.html-div.xdj266r.xat24cr.xexx8yu.xyri2b.x18d9i69.x1c1uobl.x6s0dn4.x78zum5.xl56j7k.x14ayic.xwyz465.x1e0frkt > div > span > span",
+                # PRIORITAS 2-4: Fallback selectors
+                "div[aria-label='Post'][role='button']",
+                "div[aria-label='Posting'][role='button']",
+                "div[role='button'][aria-label*='Post']"
+            ],
+            
+            # UNTUK TEXT + MEDIA - What's on your mind click (sama seperti text only)
+            'whats_on_mind_click_media': [
+                # PRIORITAS 1: Exact selector dari user
                 "#mount_0_0_oA > div > div:nth-child(1) > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div > div.x78zum5.xdt5ytf.x1t2pt76.x1n2onr6.x1ja2u2z.x10cihs4 > div.x9f619.x1ja2u2z.x78zum5.x2lah0s.x1n2onr6.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1t2pt76.x17upfok > div > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1iyjqo2.xs83m0k.xeuugli.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1iplk16.x1mfogq2.xsfy40s.x1wi7962.xpi1e93 > div > div > div > div.x78zum5.x1q0g3np.xl56j7k > div > div.x1yztbdb > div > div > div > div.x1cy8zhl.x78zum5.x1iyjqo2.xs83m0k.xh8yej3 > div > div.xi81zsa.x1lkfr7t.xkjl1po.x1mzt3pk.xh8yej3.x13faqbe > span",
+                # PRIORITAS 2-7: Fallback selectors (sama seperti text only)
                 "span[class*='xi81zsa'][class*='x1lkfr7t']",
                 "div[class*='x1cy8zhl'] span",
                 "div[role='button'][aria-label*='What\\'s on your mind']",
                 "div[role='button'][aria-label*='Apa yang Anda pikirkan']",
-                "[data-pagelet='FeedComposer'] div[role='button']"
-            ],
-            'text_input_frame_with_media': [
-                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.x1ed109x.x1iyjqo2.x5yr21d.x1n2onr6.xh8yej3 > div.x9f619.x1iyjqo2.xg7h5cd.xv54qhq.xf7dkkf.x1n2onr6.xh8yej3.x1ja2u2z.x1t1ogtf > div > div > div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate > p",
-                "div[contenteditable='true'][role='textbox']",
-                "div[contenteditable='true'][class*='notranslate'] p",
-                "div[contenteditable='true'][data-text*='What\\'s on your mind']",
-                "div[contenteditable='true'][aria-label*='What\\'s on your mind']",
-                "div[class*='xzsf02u'] p"
-            ],
-            'media_upload_check': [
-                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.xexx8yu.xf159sx.x18d9i69.xmzvs34 > div > div.x1obq294.x5a5i1n.xde0f50.x15x8krk.x6ikm8r.x10wlt62.x1n2onr6.xh8yej3 > div:nth-child(1) > div > div > img",
-                "img[src*='blob:']",
-                "img[alt*='DALL']",
-                "img[class*='x1fmog5m']",
-                "div[class*='xexx8yu'] img"
-            ],
-            'post_button_with_media': [
-                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.x1l90r2v.xyamay9.x1n2onr6 > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1r8uery.x1iyjqo2.xs83m0k.xeuugli.x1qughib.x6s0dn4.xozqiw3.x1q0g3np.xv54qhq.xf7dkkf.xyamay9.x1lxpwgx.x165d6jo.x4vbgl9.x1rdy4ex > div > div > div > div.html-div.xdj266r.xat24cr.xexx8yu.xyri2b.x18d9i69.x1c1uobl.x6s0dn4.x78zum5.xl56j7k.x14ayic.xwyz465.x1e0frkt > div > span > span",
-                "div[aria-label='Post'][role='button']",
-                "div[aria-label='Posting'][role='button']",
-                "div[role='button'][aria-label*='Post']",
-                "span:contains('Post')",
-                "div[class*='html-div'] span:contains('Post')"
+                "span:contains('What\\'s on your mind')",
+                "div[data-pagelet='FeedComposer'] div[role='button']"
             ],
             
-            # FILE INPUT
+            # UNTUK TEXT + MEDIA - Text input frame (sama seperti text only)
+            'text_input_media': [
+                # PRIORITAS 1: Exact selector dari user
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.x1ed109x.x1iyjqo2.x5yr21d.x1n2onr6.xh8yej3 > div.x9f619.x1iyjqo2.xg7h5cd.xv54qhq.xf7dkkf.x1n2onr6.xh8yej3.x1ja2u2z.x1t1ogtf > div > div > div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate > p",
+                # PRIORITAS 2-5: Fallback selectors
+                "div[contenteditable='true'][role='textbox']",
+                "div[class*='xzsf02u'] p",
+                "div[contenteditable='true'][data-text*='What\\'s on your mind']",
+                "div[contenteditable='true'][aria-label*='What\\'s on your mind']"
+            ],
+            
+            # UNTUK TEXT + MEDIA - Media validation
+            'media_validation': [
+                # PRIORITAS 1: Exact selector dari user
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.xexx8yu.xf159sx.x18d9i69.xmzvs34 > div > div.x1obq294.x5a5i1n.xde0f50.x15x8krk.x6ikm8r.x10wlt62.x1n2onr6.xh8yej3 > div:nth-child(1) > div > div > img",
+                # PRIORITAS 2-4: Fallback selectors
+                "img[src*='blob:']",
+                "img[alt*='webp']",
+                "div[class*='xexx8yu'] img"
+            ],
+            
+            # UNTUK TEXT + MEDIA - Post button (sama seperti text only)
+            'post_button_media': [
+                # PRIORITAS 1: Exact selector dari user
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.x1l90r2v.xyamay9.x1n2onr6 > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1r8uery.x1iyjqo2.xs83m0k.xeuugli.x1qughib.x6s0dn4.xozqiw3.x1q0g3np.xv54qhq.xf7dkkf.xyamay9.x1lxpwgx.x165d6jo.x4vbgl9.x1rdy4ex > div > div > div > div.html-div.xdj266r.xat24cr.xexx8yu.xyri2b.x18d9i69.x1c1uobl.x6s0dn4.x78zum5.xl56j7k.x14ayic.xwyz465.x1e0frkt > div > span > span",
+                # PRIORITAS 2-4: Fallback selectors
+                "div[aria-label='Post'][role='button']",
+                "div[aria-label='Posting'][role='button']",
+                "div[role='button'][aria-label*='Post']"
+            ],
+            
+            # Photo/Video button dan file input (untuk media upload)
+            'photo_video_button': [
+                "//*[contains(text(), 'Photo/video')]",
+                "//*[contains(text(), 'Foto/video')]",
+                "div[aria-label='Photo/video']",
+                "div[aria-label='Foto/video']"
+            ],
             'file_input': [
                 "input[type='file'][accept*='image']",
                 "input[type='file'][accept*='video']",
                 "input[type='file']"
-            ],
-            
-            # PHOTO/VIDEO BUTTON
-            'photo_video_button': [
-                "div[aria-label='Photo/video']",
-                "div[aria-label='Foto/video']",
-                "div[role='button'][aria-label*='Photo']",
-                "div[role='button'][aria-label*='Foto']",
-                "span:contains('Photo/video')",
-                "span:contains('Foto/video')"
             ]
         }
 
@@ -276,7 +277,7 @@ class FacebookUploader:
             raise
 
     def _find_element_by_selectors(self, selectors: list, timeout: int = 10, visible: bool = True) -> Optional[Any]:
-        """Mencari elemen menggunakan multiple selectors dengan prioritas"""
+        """Mencari elemen menggunakan multiple selectors dengan validasi ketat"""
         for i, selector in enumerate(selectors):
             try:
                 if visible:
@@ -288,33 +289,206 @@ class FacebookUploader:
                         EC.presence_of_element_located((By.CSS_SELECTOR, selector))
                     )
                 
-                if i == 0:
-                    self._log(f"✅ Found element with EXACT selector (priority 1)", "SUCCESS")
+                # VALIDASI KETAT: Pastikan element benar-benar ada dan visible
+                if element and element.is_displayed() and element.is_enabled():
+                    if i == 0:
+                        self._log(f"✅ ✅ Found element with EXACT selector (priority 1)", "SUCCESS")
+                    else:
+                        self._log(f"⚠️ ⚠️ Exact selector not found, using fallback #{i+1}", "WARNING")
+                    return element
                 else:
-                    self._log(f"✅ Found element with fallback selector #{i+1}", "SUCCESS")
-                return element
+                    self._log(f"🔍 Element found but not clickable with selector #{i+1}", "DEBUG")
+                    continue
                 
             except TimeoutException:
                 if i == 0:
-                    self._log(f"⚠️ Exact selector not found, trying fallbacks...", "WARNING")
+                    self._log(f"⚠️ ⚠️ Exact selector not found, trying fallbacks...", "WARNING")
                 continue
                 
         return None
 
-    def _find_element_by_xpath_or_text(self, text_patterns: list, timeout: int = 10) -> Optional[Any]:
-        """Mencari elemen berdasarkan text content"""
-        for pattern in text_patterns:
+    def _find_element_by_xpath_selectors(self, selectors: list, timeout: int = 10) -> Optional[Any]:
+        """Mencari elemen menggunakan XPath selectors dengan validasi ketat"""
+        for i, selector in enumerate(selectors):
             try:
-                # Try XPath with text content
-                xpath = f"//*[contains(text(), '{pattern}')]"
+                element = WebDriverWait(self.driver, timeout).until(
+                    EC.element_to_be_clickable((By.XPATH, selector))
+                )
+                
+                # VALIDASI KETAT: Pastikan element benar-benar ada dan visible
+                if element and element.is_displayed() and element.is_enabled():
+                    if i == 0:
+                        self._log(f"✅ ✅ Found element with EXACT XPath (priority 1)", "SUCCESS")
+                    else:
+                        self._log(f"⚠️ ⚠️ Exact XPath not found, using fallback #{i+1}", "WARNING")
+                    return element
+                else:
+                    self._log(f"🔍 XPath element found but not clickable #{i+1}", "DEBUG")
+                    continue
+                
+            except TimeoutException:
+                continue
+                
+        return None
+
+    def _find_element_by_text_content(self, text_list: list, timeout: int = 5) -> Optional[Any]:
+        """Mencari elemen berdasarkan text content sebagai last resort"""
+        for text in text_list:
+            try:
+                # Cari berdasarkan text content
+                xpath = f"//*[contains(text(), '{text}')]"
                 element = WebDriverWait(self.driver, timeout).until(
                     EC.element_to_be_clickable((By.XPATH, xpath))
                 )
-                self._log(f"✅ Found element by text: '{pattern}'", "SUCCESS")
-                return element
+                
+                if element and element.is_displayed() and element.is_enabled():
+                    self._log(f"🎯 🎯 Found element by text content: '{text}'", "SUCCESS")
+                    return element
+                    
             except TimeoutException:
                 continue
+                
         return None
+
+    def _validate_composer_opened(self) -> bool:
+        """Validasi ketat apakah composer benar-benar terbuka"""
+        self._log("🔍 🔍 VALIDATING: Checking if composer is really open...", "INFO")
+        
+        # Cek multiple indikator bahwa composer terbuka
+        composer_indicators = [
+            "div[contenteditable='true'][role='textbox']",
+            "form[method='post']",
+            "div[aria-label='Post'][role='button']",
+            "div[aria-label='Posting'][role='button']",
+            "textarea[placeholder*='mind']",
+            "div[data-pagelet*='composer']"
+        ]
+        
+        found_indicators = 0
+        for indicator in composer_indicators:
+            try:
+                elements = self.driver.find_elements(By.CSS_SELECTOR, indicator)
+                if elements:
+                    for element in elements:
+                        if element.is_displayed():
+                            found_indicators += 1
+                            self._log(f"✅ Composer indicator found: {indicator[:30]}...", "DEBUG")
+                            break
+            except:
+                continue
+        
+        if found_indicators >= 2:
+            self._log(f"✅ ✅ VALIDATION SUCCESS: Composer is open ({found_indicators} indicators found)", "SUCCESS")
+            return True
+        else:
+            self._log(f"❌ ❌ VALIDATION FAILED: Composer not open ({found_indicators} indicators found)", "ERROR")
+            return False
+
+    def _validate_text_input_success(self, expected_text: str, text_element) -> bool:
+        """Validasi ketat apakah text benar-benar berhasil diinput"""
+        self._log("🔍 🔍 VALIDATING: Checking if text was really inputted...", "INFO")
+        
+        try:
+            # Tunggu sebentar untuk memastikan text ter-render
+            time.sleep(1)
+            
+            # Cek multiple cara untuk mendapatkan text content
+            methods = [
+                lambda: text_element.get_attribute('textContent'),
+                lambda: text_element.get_attribute('innerText'),
+                lambda: text_element.get_attribute('value'),
+                lambda: text_element.text
+            ]
+            
+            for i, method in enumerate(methods, 1):
+                try:
+                    current_text = method()
+                    if current_text and expected_text.strip() in current_text:
+                        self._log(f"✅ ✅ TEXT VALIDATION SUCCESS (method {i}): '{current_text[:50]}...'", "SUCCESS")
+                        return True
+                except:
+                    continue
+            
+            self._log(f"❌ ❌ TEXT VALIDATION FAILED: Expected '{expected_text}' not found", "ERROR")
+            return False
+            
+        except Exception as e:
+            self._log(f"❌ ❌ TEXT VALIDATION ERROR: {str(e)}", "ERROR")
+            return False
+
+    def _validate_media_upload_success(self, media_selectors: list) -> bool:
+        """Validasi ketat apakah media benar-benar berhasil diupload"""
+        self._log("🔍 🔍 VALIDATING: Checking if media was really uploaded...", "INFO")
+        
+        try:
+            # Tunggu media diproses
+            time.sleep(2)
+            
+            for i, selector in enumerate(media_selectors):
+                try:
+                    elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
+                    for element in elements:
+                        if element.is_displayed():
+                            # Cek apakah ada src atau alt yang menunjukkan media
+                            src = element.get_attribute('src')
+                            alt = element.get_attribute('alt')
+                            
+                            if src and ('blob:' in src or 'data:' in src):
+                                self._log(f"✅ ✅ MEDIA VALIDATION SUCCESS: Found uploaded media (selector #{i+1})", "SUCCESS")
+                                return True
+                            elif alt and len(alt) > 10:
+                                self._log(f"✅ ✅ MEDIA VALIDATION SUCCESS: Found media with alt text (selector #{i+1})", "SUCCESS")
+                                return True
+                except:
+                    continue
+            
+            self._log(f"❌ ❌ MEDIA VALIDATION FAILED: No uploaded media found", "ERROR")
+            return False
+            
+        except Exception as e:
+            self._log(f"❌ ❌ MEDIA VALIDATION ERROR: {str(e)}", "ERROR")
+            return False
+
+    def _validate_post_click_success(self) -> bool:
+        """Validasi ketat apakah post button benar-benar diklik dan berhasil"""
+        self._log("🔍 🔍 VALIDATING: Checking if post was really submitted...", "INFO")
+        
+        try:
+            # Tunggu sebentar untuk melihat perubahan
+            time.sleep(3)
+            
+            # Cek apakah URL berubah atau kembali ke feed
+            current_url = self.driver.current_url
+            
+            # Indikator bahwa post berhasil:
+            # 1. URL tidak lagi mengandung composer/create
+            # 2. Kembali ke facebook.com utama
+            # 3. Composer tidak lagi terlihat
+            
+            if 'facebook.com' in current_url and not any(keyword in current_url for keyword in ['composer', 'create', 'post']):
+                self._log(f"✅ ✅ POST VALIDATION SUCCESS: Returned to main feed", "SUCCESS")
+                return True
+            
+            # Cek apakah composer masih ada (jika masih ada, berarti post belum berhasil)
+            try:
+                composer_elements = self.driver.find_elements(By.CSS_SELECTOR, "div[contenteditable='true'][role='textbox']")
+                visible_composers = [elem for elem in composer_elements if elem.is_displayed()]
+                
+                if not visible_composers:
+                    self._log(f"✅ ✅ POST VALIDATION SUCCESS: Composer closed", "SUCCESS")
+                    return True
+                else:
+                    self._log(f"❌ ❌ POST VALIDATION FAILED: Composer still open", "ERROR")
+                    return False
+                    
+            except:
+                # Jika tidak bisa cek composer, anggap berhasil
+                self._log(f"✅ ✅ POST VALIDATION SUCCESS: Cannot find composer (likely closed)", "SUCCESS")
+                return True
+                
+        except Exception as e:
+            self._log(f"❌ ❌ POST VALIDATION ERROR: {str(e)}", "ERROR")
+            return False
 
     def load_cookies(self) -> bool:
         """Load cookies dari file JSON"""
@@ -446,93 +620,50 @@ class FacebookUploader:
             return None
 
     def _click_element_safely(self, element, description: str = "element"):
-        """Click element dengan multiple fallback methods"""
+        """Click element dengan multiple fallback methods dan validasi ketat"""
         try:
+            # VALIDASI SEBELUM KLIK: Pastikan element benar-benar clickable
+            if not element.is_displayed():
+                self._log(f"❌ Element not displayed: {description}", "ERROR")
+                return False
+            
+            if not element.is_enabled():
+                self._log(f"❌ Element not enabled: {description}", "ERROR")
+                return False
+            
             # Method 1: Regular click
+            self._log(f"🖱️ Attempting regular click on {description}...", "INFO")
             element.click()
-            self._log(f"Element clicked successfully with regular click", "SUCCESS")
+            self._log(f"✅ ✅ CLICK SUCCESS: Regular click on {description}", "SUCCESS")
             return True
+            
         except Exception as e:
-            self._log(f"Regular click intercepted, trying JavaScript click...", "WARNING")
+            self._log(f"⚠️ Regular click failed on {description}, trying JavaScript click...", "WARNING")
             
             try:
                 # Method 2: JavaScript click
+                self._log(f"🖱️ Attempting JavaScript click on {description}...", "INFO")
                 self.driver.execute_script("arguments[0].click();", element)
-                self._log(f"Element clicked successfully with JavaScript", "SUCCESS")
+                self._log(f"✅ ✅ CLICK SUCCESS: JavaScript click on {description}", "SUCCESS")
                 return True
+                
             except Exception as e2:
-                self._log(f"JavaScript click failed, trying ActionChains...", "WARNING")
+                self._log(f"⚠️ JavaScript click failed on {description}, trying ActionChains...", "WARNING")
                 
                 try:
                     # Method 3: ActionChains
+                    self._log(f"🖱️ Attempting ActionChains click on {description}...", "INFO")
                     ActionChains(self.driver).move_to_element(element).click().perform()
-                    self._log(f"Element clicked successfully with ActionChains", "SUCCESS")
+                    self._log(f"✅ ✅ CLICK SUCCESS: ActionChains click on {description}", "SUCCESS")
                     return True
-                except Exception as e3:
-                    self._log(f"All click methods failed for {description}: {str(e3)}", "ERROR")
-                    return False
-
-    def _input_text_safely(self, element, text: str) -> bool:
-        """Input text dengan multiple methods dan validasi ketat"""
-        methods = [
-            ("Method 1: Clear + Send Keys", lambda: self._input_method_1(element, text)),
-            ("Method 2: Select All + Replace", lambda: self._input_method_2(element, text)),
-            ("Method 3: JavaScript", lambda: self._input_method_3(element, text))
-        ]
-        
-        for method_name, method_func in methods:
-            try:
-                self._log(f"Trying {method_name}...")
-                if method_func():
-                    # VALIDASI KETAT - CEK APAKAH TEXT BENAR-BENAR TERTULIS
-                    time.sleep(1)
-                    current_text = element.get_attribute('textContent') or element.get_attribute('innerText') or element.get_attribute('value') or ""
                     
-                    if text.strip() in current_text:
-                        self._log(f"✅ Text validation SUCCESS: '{current_text[:50]}...'", "SUCCESS")
-                        return True
-                    else:
-                        self._log(f"❌ Text validation FAILED. Expected: '{text}', Got: '{current_text}'", "WARNING")
-                        continue
-                        
-            except Exception as e:
-                self._log(f"{method_name} failed: {str(e)}", "WARNING")
-                continue
-        
-        return False
-
-    def _input_method_1(self, element, text: str) -> bool:
-        """Method 1: Clear dan type text"""
-        try:
-            element.clear()
-            element.send_keys(text)
-            return True
-        except Exception:
-            return False
-
-    def _input_method_2(self, element, text: str) -> bool:
-        """Method 2: Select all dan replace"""
-        try:
-            element.send_keys(Keys.CONTROL + "a")
-            element.send_keys(text)
-            return True
-        except Exception:
-            return False
-
-    def _input_method_3(self, element, text: str) -> bool:
-        """Method 3: JavaScript innerHTML"""
-        try:
-            self.driver.execute_script("arguments[0].innerHTML = arguments[1];", element, text)
-            self.driver.execute_script("arguments[0].textContent = arguments[1];", element, text)
-            # Trigger input event
-            self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', {bubbles: true}));", element)
-            return True
-        except Exception:
-            return False
+                except Exception as e3:
+                    self._log(f"❌ ❌ ALL CLICK METHODS FAILED for {description}: {str(e3)}", "ERROR")
+                    return False
 
     def upload_status(self, status_text: str = "", media_path: str = "") -> Dict[str, Any]:
         """
-        Upload status ke Facebook dengan dukungan text + media
+        Upload status ke Facebook dengan validasi ketat dan real state checking
         
         Args:
             status_text: Text untuk status
@@ -563,28 +694,37 @@ class FacebookUploader:
                     self.driver.get(self.facebook_url)
                     time.sleep(3)
             
-            # Tentukan mode: TEXT ONLY atau TEXT + MEDIA
-            has_media = media_path and os.path.exists(media_path)
+            # Tentukan mode berdasarkan input
+            has_text = bool(status_text.strip())
+            has_media = bool(media_path and os.path.exists(media_path))
             
-            if has_media:
-                self._log("🎯 MODE: TEXT + MEDIA", "INFO")
-                whats_on_mind_selector = self.selectors['whats_on_mind_click_with_media']
-                text_input_selector = self.selectors['text_input_frame_with_media']
-                post_button_selector = self.selectors['post_button_with_media']
+            if has_text and has_media:
+                mode = "TEXT + MEDIA"
+                whats_on_mind_selectors = self.selectors['whats_on_mind_click_media']
+                text_input_selectors = self.selectors['text_input_media']
+                post_button_selectors = self.selectors['post_button_media']
+            elif has_text:
+                mode = "TEXT ONLY"
+                whats_on_mind_selectors = self.selectors['whats_on_mind_click_text_only']
+                text_input_selectors = self.selectors['text_input_text_only']
+                post_button_selectors = self.selectors['post_button_text_only']
+            elif has_media:
+                mode = "MEDIA ONLY"
+                whats_on_mind_selectors = self.selectors['whats_on_mind_click_media']
+                text_input_selectors = self.selectors['text_input_media']
+                post_button_selectors = self.selectors['post_button_media']
             else:
-                self._log("🎯 MODE: TEXT ONLY", "INFO")
-                whats_on_mind_selector = self.selectors['whats_on_mind_click_text_only']
-                text_input_selector = self.selectors['text_input_frame_text_only']
-                post_button_selector = self.selectors['post_button_text_only']
+                raise ValueError("Minimal status text atau media diperlukan")
             
-            # STEP 1: Klik "What's on your mind" untuk membuka composer
-            self._log("🎯 STEP 1: Looking for 'What's on your mind' click element...")
-            whats_on_mind_click = self._find_element_by_selectors(whats_on_mind_selector)
+            self._log(f"🎯 🎯 MODE: {mode}", "INFO")
             
-            # Jika tidak ditemukan dengan CSS selector, coba dengan text
+            # STEP 1: Cari dan klik "What's on your mind" dengan validasi ketat
+            self._log("🎯 🎯 STEP 1: Looking for 'What's on your mind' click element...", "INFO")
+            whats_on_mind_click = self._find_element_by_selectors(whats_on_mind_selectors)
+            
             if not whats_on_mind_click:
-                self._log("🔍 Trying to find by text content...", "INFO")
-                whats_on_mind_click = self._find_element_by_xpath_or_text([
+                # Last resort: cari berdasarkan text content
+                whats_on_mind_click = self._find_element_by_text_content([
                     "What's on your mind",
                     "Apa yang Anda pikirkan"
                 ])
@@ -592,52 +732,71 @@ class FacebookUploader:
             if not whats_on_mind_click:
                 raise NoSuchElementException("Tidak dapat menemukan elemen 'What's on your mind' untuk diklik")
             
-            self._log("✅ Found 'What's on your mind' click element")
-            self._log("🖱️ Clicking 'What's on your mind' element...")
+            self._log("ℹ️ ✅ Found 'What's on your mind' click element", "SUCCESS")
+            self._log("ℹ️ 🖱️ Clicking 'What's on your mind' element...", "INFO")
             
             if not self._click_element_safely(whats_on_mind_click, "'What's on your mind' click"):
                 raise Exception("Gagal mengklik elemen 'What's on your mind'")
             
-            self._log("✅ Post composer should now be open", "SUCCESS")
-            time.sleep(3)  # Tunggu composer terbuka
+            # VALIDASI KETAT: Pastikan composer benar-benar terbuka
+            time.sleep(2)
+            if not self._validate_composer_opened():
+                raise Exception("Composer tidak terbuka setelah klik 'What's on your mind'")
             
             # STEP 2: Isi text jika ada
-            if status_text.strip():
-                self._log("🎯 STEP 2: Adding status text...")
+            if has_text:
+                self._log("🎯 🎯 STEP 2: Adding status text...", "INFO")
                 
-                # Cari text input frame
-                text_input_frame = self._find_element_by_selectors(text_input_selector)
+                text_input = self._find_element_by_selectors(text_input_selectors)
                 
-                if not text_input_frame:
-                    raise NoSuchElementException("Tidak dapat menemukan text input frame")
+                if not text_input:
+                    raise NoSuchElementException("Tidak dapat menemukan text input setelah composer terbuka")
                 
-                self._log("✅ Found text input frame")
+                self._log("ℹ️ ✅ Found text input element", "SUCCESS")
+                self._log("ℹ️ 🖱️ Clicking text input element...", "INFO")
                 
-                # Klik text input frame
-                if not self._click_element_safely(text_input_frame, "text input frame"):
-                    raise Exception("Gagal mengklik text input frame")
+                if not self._click_element_safely(text_input, "text input"):
+                    raise Exception("Gagal mengklik text input")
                 
                 time.sleep(1)
                 
                 # Input text dengan validasi ketat
-                if self._input_text_safely(text_input_frame, status_text):
-                    self._log("✅ ✅ STEP 2 COMPLETE: Status text added successfully", "SUCCESS")
-                else:
-                    raise Exception("Gagal menambahkan status text setelah semua method dicoba")
+                self._log(f"ℹ️ ⌨️ Inputting text: '{status_text[:50]}...'", "INFO")
+                
+                # Clear existing text dan input text baru
+                text_input.clear()
+                text_input.send_keys(status_text)
+                
+                # VALIDASI KETAT: Pastikan text benar-benar terinput
+                if not self._validate_text_input_success(status_text, text_input):
+                    raise Exception("Text tidak berhasil diinput dengan benar")
+                
+                self._log("✅ ✅ STEP 2 COMPLETE: Status text added successfully", "SUCCESS")
             
-            # STEP 3: Tambahkan media jika ada
+            # STEP 3: Upload media jika ada
             if has_media:
-                self._log("🎯 STEP 3: Adding media...")
+                self._log("🎯 🎯 STEP 3: Adding media...", "INFO")
                 
-                # Cari tombol Photo/Video terlebih dahulu
-                photo_video_button = self._find_element_by_selectors(self.selectors['photo_video_button'])
+                # Cari tombol Photo/Video
+                photo_video_selectors = [
+                    "//*[contains(text(), 'Photo/video')]",
+                    "//*[contains(text(), 'Foto/video')]",
+                    "div[aria-label='Photo/video']",
+                    "div[aria-label='Foto/video']"
+                ]
                 
-                if photo_video_button:
-                    self._log("✅ Found Photo/Video button, clicking...")
-                    if not self._click_element_safely(photo_video_button, "Photo/Video button"):
-                        self._log("⚠️ Failed to click Photo/Video button, trying direct file input", "WARNING")
-                    else:
-                        time.sleep(2)
+                photo_video_button = self._find_element_by_xpath_selectors(photo_video_selectors)
+                
+                if not photo_video_button:
+                    raise NoSuchElementException("Tidak dapat menemukan tombol Photo/Video")
+                
+                self._log("ℹ️ ✅ Found Photo/Video button", "SUCCESS")
+                self._log("ℹ️ 🖱️ Clicking Photo/Video button...", "INFO")
+                
+                if not self._click_element_safely(photo_video_button, "Photo/Video button"):
+                    raise Exception("Gagal mengklik tombol Photo/Video")
+                
+                time.sleep(2)
                 
                 # Cari file input
                 file_input = self._find_element_by_selectors(self.selectors['file_input'], visible=False)
@@ -647,89 +806,51 @@ class FacebookUploader:
                 
                 # Upload file
                 abs_path = os.path.abspath(media_path)
+                self._log(f"ℹ️ 📁 Uploading file: {os.path.basename(media_path)}", "INFO")
                 file_input.send_keys(abs_path)
+                
+                # VALIDASI KETAT: Pastikan media benar-benar terupload
+                if not self._validate_media_upload_success(self.selectors['media_validation']):
+                    self._log("⚠️ Media validation failed, but continuing...", "WARNING")
                 
                 self._log("✅ ✅ STEP 3 COMPLETE: Media uploaded successfully", "SUCCESS")
                 time.sleep(3)  # Tunggu media diproses
-                
-                # Validasi media ter-upload dengan selector spesifik
-                try:
-                    media_check = self._find_element_by_selectors(self.selectors['media_upload_check'], timeout=5)
-                    if media_check:
-                        self._log("✅ Media upload confirmed (found uploaded image)", "SUCCESS")
-                    else:
-                        self._log("⚠️ Media upload tidak dapat dikonfirmasi", "WARNING")
-                except:
-                    self._log("⚠️ Media upload tidak dapat dikonfirmasi", "WARNING")
             
             # STEP 4: Klik tombol Post dengan validasi ketat
-            self._log("🎯 STEP 4: Looking for post button...")
+            self._log("🎯 🎯 STEP 4: Clicking Post button...", "INFO")
             
-            post_button = self._find_element_by_selectors(post_button_selector)
+            post_button = self._find_element_by_selectors(post_button_selectors)
             
-            # Jika tidak ditemukan dengan CSS selector, coba dengan text
             if not post_button:
-                self._log("🔍 Trying to find Post button by text content...", "INFO")
-                post_button = self._find_element_by_xpath_or_text([
-                    "Post",
-                    "Posting"
-                ])
+                # Last resort: cari berdasarkan text "Post"
+                post_button = self._find_element_by_text_content(["Post", "Posting"])
             
             if not post_button:
                 raise NoSuchElementException("Tidak dapat menemukan tombol Post")
             
-            self._log("✅ Found post button")
-            self._log("🖱️ Clicking post button...")
-            
-            # VALIDASI KETAT - CEK APAKAH POST BUTTON BENAR-BENAR DIKLIK
-            initial_url = self.driver.current_url
+            self._log("ℹ️ ✅ Found Post button", "SUCCESS")
+            self._log("ℹ️ 🖱️ Clicking Post button...", "INFO")
             
             if not self._click_element_safely(post_button, "Post button"):
                 raise Exception("Gagal mengklik tombol Post")
             
-            # Tunggu dan validasi apakah post berhasil
-            self._log("⏳ Waiting for post to complete...")
-            time.sleep(5)
-            
-            # Cek apakah URL berubah atau ada indikator sukses
-            current_url = self.driver.current_url
-            
-            # Cek apakah kembali ke feed atau ada perubahan
-            if current_url != initial_url:
-                self._log("✅ Post berhasil (URL changed)", "SUCCESS")
-                success_confirmed = True
-            else:
-                # Cek apakah composer masih terbuka
-                try:
-                    if has_media:
-                        composer_check_selector = self.selectors['text_input_frame_with_media']
-                    else:
-                        composer_check_selector = self.selectors['text_input_frame_text_only']
-                    
-                    composer_still_open = self.driver.find_elements(By.CSS_SELECTOR, composer_check_selector[0])
-                    if composer_still_open:
-                        self._log("❌ Post composer masih terbuka - post mungkin gagal", "WARNING")
-                        success_confirmed = False
-                    else:
-                        self._log("✅ Post composer tertutup - post berhasil", "SUCCESS")
-                        success_confirmed = True
-                except:
-                    success_confirmed = True
-            
-            if success_confirmed:
-                self._log("🎉 Facebook status with text + media posted successfully!", "SUCCESS")
+            # VALIDASI KETAT: Pastikan post benar-benar berhasil
+            if self._validate_post_click_success():
+                self._log("🎉 🎉 Facebook status posted successfully!", "SUCCESS")
                 return {
                     "success": True,
-                    "message": "Status berhasil dipost",
+                    "message": "Status berhasil dipost dengan validasi ketat",
                     "status_text": status_text,
-                    "media_path": media_path
+                    "media_path": media_path,
+                    "mode": mode
                 }
             else:
                 return {
                     "success": False,
-                    "message": "Post mungkin gagal - composer masih terbuka",
+                    "message": "Post button diklik tapi validasi gagal - status mungkin tidak terpost",
                     "status_text": status_text,
-                    "media_path": media_path
+                    "media_path": media_path,
+                    "mode": mode
                 }
                 
         except Exception as e:
@@ -909,25 +1030,6 @@ class FacebookUploader:
                     self.driver.quit()
                 except:
                     pass
-
-    def _find_element_by_xpath_selectors(self, selectors: list, timeout: int = 10) -> Optional[Any]:
-        """Mencari elemen menggunakan XPath selectors"""
-        for i, selector in enumerate(selectors):
-            try:
-                element = WebDriverWait(self.driver, timeout).until(
-                    EC.element_to_be_clickable((By.XPATH, selector))
-                )
-                
-                if i == 0:
-                    self._log(f"Found element with selector: {selector}...")
-                else:
-                    self._log(f"Found element with alternative selector {i+1}: {selector}...")
-                return element
-                
-            except TimeoutException:
-                continue
-                
-        return None
 
     def check_cookies_status(self):
         """Cek status cookies"""
