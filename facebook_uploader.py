@@ -60,18 +60,20 @@ class FacebookUploader:
         self.facebook_url = "https://www.facebook.com"
         self.reels_create_url = "https://www.facebook.com/reels/create/?surface=PROFILE_PLUS"
         
-        # Selectors - GENERIC dan FLEXIBLE
+        # Selectors - FIXED XPath syntax
         self.selectors = {
             'whats_on_mind_click': [
-                # Generic selectors yang lebih reliable
+                # Primary CSS selectors
                 "div[role='button'][aria-label*='What\\'s on your mind']",
                 "div[role='button'][aria-label*='Apa yang Anda pikirkan']",
                 "div[data-pagelet='FeedComposer'] div[role='button']",
                 "div[aria-label*='What\\'s on your mind']",
                 "div[aria-label*='Apa yang Anda pikirkan']",
-                # Fallback berdasarkan text content
-                "//div[@role='button' and contains(., 'What\\'s on your mind')]",
-                "//div[@role='button' and contains(., 'Apa yang Anda pikirkan')]",
+                # FIXED XPath selectors - menggunakan double quotes
+                '//div[@role="button" and contains(., "What")]',
+                '//div[@role="button" and contains(., "mind")]',
+                '//div[@role="button" and contains(., "Apa")]',
+                '//div[@role="button" and contains(., "pikirkan")]',
                 # Fallback berdasarkan struktur umum
                 "div[data-pagelet*='FeedComposer'] span",
                 "div[data-testid*='status-attachment-mentions-input']"
@@ -92,10 +94,12 @@ class FacebookUploader:
                 "div[aria-label='Foto/video']",
                 "div[role='button'][aria-label*='Photo']",
                 "div[role='button'][aria-label*='Foto']",
-                "//div[@role='button' and contains(., 'Photo/video')]",
-                "//div[@role='button' and contains(., 'Foto/video')]",
-                "//span[contains(text(), 'Photo/video')]/parent::*",
-                "//span[contains(text(), 'Foto/video')]/parent::*"
+                # FIXED XPath selectors
+                '//div[@role="button" and contains(., "Photo")]',
+                '//div[@role="button" and contains(., "video")]',
+                '//div[@role="button" and contains(., "Foto")]',
+                '//span[contains(text(), "Photo")]/parent::*',
+                '//span[contains(text(), "Foto")]/parent::*'
             ],
             'file_input': [
                 "input[type='file'][accept*='image']",
@@ -107,10 +111,11 @@ class FacebookUploader:
                 "div[aria-label='Posting'][role='button']",
                 "div[role='button'][aria-label*='Post']",
                 "div[role='button'][aria-label*='Posting']",
-                "//div[@role='button' and contains(., 'Post')]",
-                "//div[@role='button' and contains(., 'Posting')]",
-                "//span[contains(text(), 'Post')]/parent::*",
-                "//span[contains(text(), 'Posting')]/parent::*"
+                # FIXED XPath selectors
+                '//div[@role="button" and contains(., "Post")]',
+                '//div[@role="button" and contains(., "Posting")]',
+                '//span[contains(text(), "Post")]/parent::*',
+                '//span[contains(text(), "Posting")]/parent::*'
             ],
             'composer_indicators': [
                 "div[contenteditable='true'][role='textbox']",
