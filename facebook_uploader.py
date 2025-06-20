@@ -60,18 +60,33 @@ class FacebookUploader:
         self.facebook_url = "https://www.facebook.com"
         self.reels_create_url = "https://www.facebook.com/reels/create/?surface=PROFILE_PLUS"
         
-        # Selectors - Menggunakan selector spesifik yang diberikan
+        # Selectors - Menggunakan selector CSS yang sangat spesifik
         self.selectors = {
             # STATUS TEXT ONLY
-            'whats_on_mind_click': [
-                "span.x1lliihq.x6ikm8r.x10wlt62.x1n2onr6[style*='-webkit-box-orient: vertical']"
+            'whats_on_mind_click_text_only': [
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div > div.x78zum5.xdt5ytf.x1t2pt76.x1n2onr6.x1ja2u2z.x10cihs4 > div.x9f619.x1ja2u2z.x78zum5.x2lah0s.x1n2onr6.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1t2pt76.x17upfok > div > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1iyjqo2.xs83m0k.xeuugli.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1iplk16.x1mfogq2.xsfy40s.x1wi7962.xpi1e93 > div > div > div > div.x78zum5.x1q0g3np.xl56j7k > div > div.x1yztbdb > div > div > div > div.x1cy8zhl.x78zum5.x1iyjqo2.xs83m0k.xh8yej3 > div > div.xi81zsa.x1lkfr7t.xkjl1po.x1mzt3pk.xh8yej3.x13faqbe > span"
             ],
-            'text_input_frame': [
-                "div.xi81zsa.x6ikm8r.x10wlt62.x47corl.x10l6tqk.xlyipyv.xs7f9wi.x87ps6o.x1vjfegm"
+            'text_input_frame_text_only': [
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.x1ed109x.x1iyjqo2.x5yr21d.x1n2onr6.xh8yej3 > div.x9f619.x1iyjqo2.xg7h5cd.xv54qhq.xf7dkkf.x1n2onr6.xh8yej3.x1ja2u2z.x1t1ogtf > div > div > div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate > p"
             ],
-            'post_button': [
-                "span.x1lliihq.x6ikm8r.x10wlt62.x1n2onr6.xlyipyv.xuxw1ft"
+            'post_button_text_only': [
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.x1l90r2v.xyamay9.x1n2onr6 > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1r8uery.x1iyjqo2.xs83m0k.xeuugli.x1qughib.x6s0dn4.xozqiw3.x1q0g3np.xv54qhq.xf7dkkf.xyamay9.x1lxpwgx.x165d6jo.x4vbgl9.x1rdy4ex > div > div > div > div.html-div.xdj266r.xat24cr.xexx8yu.xyri2b.x18d9i69.x1c1uobl.x6s0dn4.x78zum5.xl56j7k.x14ayic.xwyz465.x1e0frkt > div > span > span"
             ],
+            
+            # TEXT + MEDIA
+            'whats_on_mind_click_with_media': [
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div > div.x78zum5.xdt5ytf.x1t2pt76.x1n2onr6.x1ja2u2z.x10cihs4 > div.x9f619.x1ja2u2z.x78zum5.x2lah0s.x1n2onr6.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1t2pt76.x17upfok > div > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1iyjqo2.xs83m0k.xeuugli.xl56j7k.x1qjc9v5.xozqiw3.x1q0g3np.x1iplk16.x1mfogq2.xsfy40s.x1wi7962.xpi1e93 > div > div > div > div.x78zum5.x1q0g3np.xl56j7k > div > div.x1yztbdb > div > div > div > div.x1cy8zhl.x78zum5.x1iyjqo2.xs83m0k.xh8yej3 > div > div.xi81zsa.x1lkfr7t.xkjl1po.x1mzt3pk.xh8yej3.x13faqbe > span"
+            ],
+            'text_input_frame_with_media': [
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.x1ed109x.x1iyjqo2.x5yr21d.x1n2onr6.xh8yej3 > div.x9f619.x1iyjqo2.xg7h5cd.xv54qhq.xf7dkkf.x1n2onr6.xh8yej3.x1ja2u2z.x1t1ogtf > div > div > div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate > p"
+            ],
+            'media_upload_check': [
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.xexx8yu.xf159sx.x18d9i69.xmzvs34 > div > div.x1obq294.x5a5i1n.xde0f50.x15x8krk.x6ikm8r.x10wlt62.x1n2onr6.xh8yej3 > div:nth-child(1) > div > div > img"
+            ],
+            'post_button_with_media': [
+                "#mount_0_0_oA > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.x1l90r2v.xyamay9.x1n2onr6 > div.x9f619.x1ja2u2z.x78zum5.x1n2onr6.x1r8uery.x1iyjqo2.xs83m0k.xeuugli.x1qughib.x6s0dn4.xozqiw3.x1q0g3np.xv54qhq.xf7dkkf.xyamay9.x1lxpwgx.x165d6jo.x4vbgl9.x1rdy4ex > div > div > div > div.html-div.xdj266r.xat24cr.xexx8yu.xyri2b.x18d9i69.x1c1uobl.x6s0dn4.x78zum5.xl56j7k.x14ayic.xwyz465.x1e0frkt > div > span > span"
+            ],
+            
             # FILE INPUT
             'file_input': [
                 "input[type='file'][accept*='image']",
@@ -216,9 +231,9 @@ class FacebookUploader:
                     )
                 
                 if i == 0:
-                    self._log(f"Found element with selector: {selector[:50]}...")
+                    self._log(f"Found element with exact selector", "SUCCESS")
                 else:
-                    self._log(f"Found element with alternative selector {i+1}: {selector[:50]}...")
+                    self._log(f"Found element with alternative selector {i+1}", "SUCCESS")
                 return element
                 
             except TimeoutException:
@@ -473,9 +488,23 @@ class FacebookUploader:
                     self.driver.get(self.facebook_url)
                     time.sleep(3)
             
+            # Tentukan mode: TEXT ONLY atau TEXT + MEDIA
+            has_media = media_path and os.path.exists(media_path)
+            
+            if has_media:
+                self._log("🎯 MODE: TEXT + MEDIA", "INFO")
+                whats_on_mind_selector = self.selectors['whats_on_mind_click_with_media']
+                text_input_selector = self.selectors['text_input_frame_with_media']
+                post_button_selector = self.selectors['post_button_with_media']
+            else:
+                self._log("🎯 MODE: TEXT ONLY", "INFO")
+                whats_on_mind_selector = self.selectors['whats_on_mind_click_text_only']
+                text_input_selector = self.selectors['text_input_frame_text_only']
+                post_button_selector = self.selectors['post_button_text_only']
+            
             # STEP 1: Klik "What's on your mind" untuk membuka composer
             self._log("🎯 STEP 1: Looking for 'What's on your mind' click element...")
-            whats_on_mind_click = self._find_element_by_selectors(self.selectors['whats_on_mind_click'])
+            whats_on_mind_click = self._find_element_by_selectors(whats_on_mind_selector)
             
             if not whats_on_mind_click:
                 raise NoSuchElementException("Tidak dapat menemukan elemen 'What's on your mind' untuk diklik")
@@ -494,7 +523,7 @@ class FacebookUploader:
                 self._log("🎯 STEP 2: Adding status text...")
                 
                 # Cari text input frame
-                text_input_frame = self._find_element_by_selectors(self.selectors['text_input_frame'])
+                text_input_frame = self._find_element_by_selectors(text_input_selector)
                 
                 if not text_input_frame:
                     raise NoSuchElementException("Tidak dapat menemukan text input frame")
@@ -514,7 +543,7 @@ class FacebookUploader:
                     raise Exception("Gagal menambahkan status text setelah semua method dicoba")
             
             # STEP 3: Tambahkan media jika ada
-            if media_path and os.path.exists(media_path):
+            if has_media:
                 self._log("🎯 STEP 3: Adding media...")
                 
                 # Cari file input
@@ -530,20 +559,20 @@ class FacebookUploader:
                 self._log("✅ ✅ STEP 3 COMPLETE: Media uploaded successfully", "SUCCESS")
                 time.sleep(3)  # Tunggu media diproses
                 
-                # Validasi media ter-upload dengan mencari img tag
+                # Validasi media ter-upload dengan selector spesifik
                 try:
-                    media_check = self.driver.find_elements(By.CSS_SELECTOR, "img[src*='blob:']")
+                    media_check = self._find_element_by_selectors(self.selectors['media_upload_check'], timeout=5)
                     if media_check:
-                        self._log("✅ Media upload confirmed (found blob image)", "SUCCESS")
+                        self._log("✅ Media upload confirmed (found uploaded image)", "SUCCESS")
                     else:
                         self._log("⚠️ Media upload tidak dapat dikonfirmasi", "WARNING")
                 except:
-                    pass
+                    self._log("⚠️ Media upload tidak dapat dikonfirmasi", "WARNING")
             
             # STEP 4: Klik tombol Post dengan validasi ketat
             self._log("🎯 STEP 4: Looking for post button...")
             
-            post_button = self._find_element_by_selectors(self.selectors['post_button'])
+            post_button = self._find_element_by_selectors(post_button_selector)
             
             if not post_button:
                 raise NoSuchElementException("Tidak dapat menemukan tombol Post")
@@ -571,7 +600,12 @@ class FacebookUploader:
             else:
                 # Cek apakah composer masih terbuka
                 try:
-                    composer_still_open = self.driver.find_elements(By.CSS_SELECTOR, "div.xi81zsa.x6ikm8r.x10wlt62.x47corl.x10l6tqk.xlyipyv.xs7f9wi.x87ps6o.x1vjfegm")
+                    if has_media:
+                        composer_check_selector = self.selectors['text_input_frame_with_media']
+                    else:
+                        composer_check_selector = self.selectors['text_input_frame_text_only']
+                    
+                    composer_still_open = self.driver.find_elements(By.CSS_SELECTOR, composer_check_selector[0])
                     if composer_still_open:
                         self._log("❌ Post composer masih terbuka - post mungkin gagal", "WARNING")
                         success_confirmed = False
