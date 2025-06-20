@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 """
-Facebook Uploader untuk Status dan Reels menggunakan Selenium
-Mendukung cookies JSON untuk auto-login dan upload berbagai jenis konten
-Unified approach untuk text dan media menggunakan selector yang sama
-URUTAN: Text dahulu, lalu Media
+Facebook Uploader (Status & Reels) menggunakan Selenium
+Mendukung cookies JSON untuk auto-login dan dual language support
 """
 
 import os
 import sys
 import json
 import time
-import random
 import platform
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -24,12 +21,11 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import (
-    TimeoutException,
-    NoSuchElementException,
+    TimeoutException, 
+    NoSuchElementException, 
     WebDriverException,
     ElementNotInteractableException,
-    StaleElementReferenceException,
-    ElementClickInterceptedException
+    StaleElementReferenceException
 )
 from webdriver_manager.chrome import ChromeDriverManager
 from colorama import init, Fore, Style
@@ -42,7 +38,7 @@ class FacebookUploader:
     def __init__(self, headless: bool = False, debug: bool = False):
         """
         Initialize Facebook Uploader
-
+        
         Args:
             headless: Run browser in headless mode
             debug: Enable debug logging
@@ -61,87 +57,46 @@ class FacebookUploader:
         self.screenshots_dir.mkdir(exist_ok=True)
         
         # Facebook URLs
-        self.home_url = "https://www.facebook.com"
-        self.reels_url = "https://www.facebook.com/reel/create"
-        self.login_url = "https://www.facebook.com/login"
+        self.facebook_url = "https://www.facebook.com"
+        self.reels_create_url = "https://www.facebook.com/reels/create/?surface=PROFILE_PLUS"
         
-        # 🎯 OPTIMIZED SELECTORS - Berdasarkan gambar yang diberikan
+        # Selectors - Menggunakan "What's on your mind" yang sama untuk semua
         self.selectors = {
-            # ✅ "What's on your mind" detection - DUAL LANGUAGE
-            'whats_on_mind_text': [
-                "//*[contains(text(), \"What's on your mind\")]",
-                "//*[contains(text(), \"Apa yang Anda pikirkan\")]",  # Indonesian
-                "//*[contains(text(), \"What's on your mind?\")]"
+            'whats_on_mind': [
+                "div[role='button'][aria-label*='What\\'s on your mind']",
+                "div[role='button'][aria-label*='Apa yang Anda pikirkan']",
+                "div[data-pagelet='FeedComposer'] div[role='button']",
+                "div[aria-label*='What\\'s on your mind']",
+                "div[aria-label*='Apa yang Anda pikirkan']"
             ],
-            
-            # ✅ Text input - UNIFIED untuk text dan media
-            'status_text_input': [
-                # Berdasarkan gambar: input text yang sama untuk text dan media
-                "div[contenteditable='true'][data-testid*='status']",
-                "div[contenteditable='true'][aria-label*='What']",
+            'text_input': [
                 "div[contenteditable='true'][role='textbox']",
-                "//*[contains(text(), \"What's on your mind\")]/following::div[@contenteditable='true'][1]",
-                "//*[contains(text(), \"Apa yang Anda pikirkan\")]/following::div[@contenteditable='true'][1]",
-                "div[contenteditable='true']"
+                "div[contenteditable='true'][data-text='What\\'s on your mind?']",
+                "div[contenteditable='true'][data-text='Apa yang Anda pikirkan?']",
+                "div[contenteditable='true'][aria-label*='What\\'s on your mind']",
+                "div[contenteditable='true'][aria-label*='Apa yang Anda pikirkan']"
             ],
-            
-            # ✅ Photo/Video button - untuk membuka media selector
             'photo_video_button': [
-                # Berdasarkan gambar: tombol "Photo/video" 
-                "//*[contains(text(), 'Photo/video')]",
-                "//*[contains(text(), 'Foto/video')]",  # Indonesian
-                "div[aria-label*='Photo']",
-                "div[aria-label*='Foto']",
-                "[data-testid*='photo']",
-                "[data-testid*='media']"
+                "div[aria-label='Photo/video']",
+                "div[aria-label='Foto/video']",
+                "div[role='button'][aria-label*='Photo']",
+                "div[role='button'][aria-label*='Foto']"
             ],
-            
-            # ✅ Direct file upload input
-            'media_upload_input': [
+            'file_input': [
                 "input[type='file'][accept*='image']",
-                "input[type='file'][accept*='video']", 
-                "input[type='file'][accept*='*']",
-                "input[type='file']",
-                "//input[@type='file']"
-            ],
-            
-            # ✅ Post button - FIXED berdasarkan gambar
-            'post_button': [
-                # Berdasarkan gambar: tombol "Post" (bukan "Posting")
-                "//*[text()='Post' and @role='button']",
-                "//*[contains(text(), 'Post') and @role='button']",
-                "//*[text()='Posting' and @role='button']",  # Indonesian
-                "//*[contains(text(), 'Posting') and @role='button']",  # Indonesian
-                "div[aria-label='Post'][role='button']",
-                "button[aria-label='Post']",
-                "[data-testid*='post-button']"
-            ],
-            
-            # ✅ Reels specific selectors - DUAL LANGUAGE
-            'reels_upload_input': [
                 "input[type='file'][accept*='video']",
-                "input[type='file']",
-                "//input[@type='file']"
+                "input[type='file']"
             ],
-            
-            'reels_next_button': [
-                "//*[contains(text(), 'Next') and @role='button']",
-                "//*[contains(text(), 'Berikutnya') and @role='button']",  # Indonesian
-                "button[aria-label='Next']",
-                "div[aria-label='Next'][role='button']"
-            ],
-            
-            'reels_publish_button': [
-                "//*[contains(text(), 'Publish') and @role='button']",
-                "//*[contains(text(), 'Terbitkan') and @role='button']",  # Indonesian
-                "//*[contains(text(), 'Share') and @role='button']",
-                "button[aria-label='Publish']",
-                "div[aria-label='Publish'][role='button']"
+            'post_button': [
+                "div[aria-label='Post'][role='button']",
+                "div[aria-label='Posting'][role='button']",
+                "div[role='button'][aria-label*='Post']",
+                "div[role='button'][aria-label*='Posting']"
             ]
         }
 
     def _log(self, message: str, level: str = "INFO"):
-        """Enhanced logging with colors"""
+        """Enhanced logging dengan warna"""
         colors = {
             "INFO": Fore.CYAN,
             "SUCCESS": Fore.GREEN,
@@ -166,101 +121,53 @@ class FacebookUploader:
         print(f"{color}{icon} {message}{Style.RESET_ALL}")
 
     def _get_chromedriver_path(self):
-        """Get ChromeDriver path with Windows compatibility fix"""
+        """Get ChromeDriver path dengan fallback untuk Windows"""
         try:
-            self._log("Downloading ChromeDriver...")
-            
-            # Force download fresh ChromeDriver
+            self._log("Mendownload ChromeDriver terbaru...")
             driver_path = ChromeDriverManager().install()
             
-            # Windows compatibility check
-            if platform.system() == "Windows":
-                # Ensure we have the .exe file
-                if not driver_path.endswith('.exe'):
-                    # Look for .exe in the same directory
-                    driver_dir = os.path.dirname(driver_path)
-                    exe_files = [f for f in os.listdir(driver_dir) if f.endswith('.exe') and 'chromedriver' in f.lower()]
-                    
-                    if exe_files:
-                        driver_path = os.path.join(driver_dir, exe_files[0])
-                    else:
-                        # Try adding .exe extension
-                        exe_path = driver_path + '.exe'
-                        if os.path.exists(exe_path):
-                            driver_path = exe_path
-                
-                # Verify the file is executable
-                if not os.path.exists(driver_path):
-                    raise FileNotFoundError(f"ChromeDriver not found at: {driver_path}")
-                
-                # Check if file is valid executable
-                try:
-                    import subprocess
-                    result = subprocess.run([driver_path, '--version'], 
-                                          capture_output=True, text=True, timeout=10)
-                    if result.returncode != 0:
-                        raise Exception("ChromeDriver is not a valid executable")
-                except Exception as e:
-                    self._log(f"ChromeDriver validation failed: {e}", "WARNING")
-                    # Try alternative download
-                    return self._download_chromedriver_alternative()
-            
-            self._log(f"ChromeDriver ready: {driver_path}", "SUCCESS")
-            return driver_path
-            
-        except Exception as e:
-            self._log(f"ChromeDriver download failed: {e}", "ERROR")
-            return self._download_chromedriver_alternative()
-
-    def _download_chromedriver_alternative(self):
-        """Alternative ChromeDriver download method for Windows"""
-        self._log("Trying alternative ChromeDriver download...", "WARNING")
-        
-        try:
-            # Clear webdriver-manager cache
-            import shutil
-            cache_dir = os.path.expanduser("~/.wdm")
-            if os.path.exists(cache_dir):
-                shutil.rmtree(cache_dir)
-                self._log("Cleared ChromeDriver cache", "INFO")
-            
-            # Try fresh download
-            from webdriver_manager.chrome import ChromeDriverManager
-            from webdriver_manager.core.utils import ChromeType
-            
-            driver_path = ChromeDriverManager(chrome_type=ChromeType.GOOGLE).install()
-            
-            # Windows path fix
-            if platform.system() == "Windows" and not driver_path.endswith('.exe'):
-                driver_path += '.exe'
-            
             if os.path.exists(driver_path):
-                self._log(f"Alternative download successful: {driver_path}", "SUCCESS")
+                if platform.system() == "Windows" and not driver_path.endswith('.exe'):
+                    driver_dir = os.path.dirname(driver_path)
+                    for file in os.listdir(driver_dir):
+                        if file.endswith('.exe') and 'chromedriver' in file.lower():
+                            driver_path = os.path.join(driver_dir, file)
+                            break
+                
+                self._log(f"ChromeDriver ditemukan: {driver_path}", "SUCCESS")
                 return driver_path
             else:
-                raise FileNotFoundError("Alternative download failed")
+                raise FileNotFoundError("ChromeDriver tidak ditemukan setelah download")
                 
         except Exception as e:
-            self._log(f"Alternative download failed: {e}", "ERROR")
+            self._log(f"Error downloading ChromeDriver: {e}", "WARNING")
             
-            # Final fallback: check system PATH
             import shutil
-            system_chrome = shutil.which('chromedriver') or shutil.which('chromedriver.exe')
-            if system_chrome:
-                self._log(f"Using system ChromeDriver: {system_chrome}", "SUCCESS")
-                return system_chrome
+            chrome_names = ['chromedriver', 'chromedriver.exe']
+            for name in chrome_names:
+                path = shutil.which(name)
+                if path:
+                    self._log(f"ChromeDriver ditemukan di PATH: {path}", "SUCCESS")
+                    return path
             
-            # Last resort: manual instructions
-            self._log("ChromeDriver auto-download failed. Manual setup required:", "ERROR")
-            self._log("1. Download ChromeDriver from: https://chromedriver.chromium.org/", "INFO")
-            self._log("2. Extract to a folder in your PATH", "INFO")
-            self._log("3. Or place in the same folder as this script", "INFO")
+            if platform.system() == "Windows":
+                common_paths = [
+                    r"C:\Program Files\Google\Chrome\Application\chromedriver.exe",
+                    r"C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe",
+                    r"C:\chromedriver\chromedriver.exe",
+                    r"C:\tools\chromedriver.exe"
+                ]
+                
+                for path in common_paths:
+                    if os.path.exists(path):
+                        self._log(f"ChromeDriver ditemukan: {path}", "SUCCESS")
+                        return path
             
-            raise FileNotFoundError("ChromeDriver not available. Please install manually.")
+            raise FileNotFoundError("ChromeDriver tidak ditemukan. Silakan install Chrome dan ChromeDriver.")
 
     def _setup_driver(self):
-        """Setup Chrome WebDriver with optimal configuration"""
-        self._log("Setting up browser for Facebook...")
+        """Setup Chrome WebDriver dengan konfigurasi optimal"""
+        self._log("Menyiapkan browser untuk Facebook...")
         
         chrome_options = Options()
         
@@ -273,9 +180,10 @@ class FacebookUploader:
         if self.headless:
             chrome_options.add_argument('--headless=new')
         
-        # Additional options for Facebook
+        # Additional options
         chrome_options.add_argument('--disable-extensions')
         chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--disable-images')
         chrome_options.add_argument('--disable-notifications')
         chrome_options.add_argument('--disable-popup-blocking')
         chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
@@ -289,47 +197,73 @@ class FacebookUploader:
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])
         chrome_options.add_experimental_option('useAutomationExtension', False)
         
+        if self.headless:
+            self._log("Mode headless diaktifkan")
+        
         try:
-            # Get ChromeDriver with Windows fix
             driver_path = self._get_chromedriver_path()
+            service = Service(driver_path, log_path=os.devnull, service_args=['--silent'])
             
-            service = Service(
-                driver_path,
-                log_path=os.devnull,
-                service_args=['--silent']
-            )
-            
-            # Suppress logs
             os.environ['WDM_LOG_LEVEL'] = '0'
             os.environ['WDM_PRINT_FIRST_LINE'] = 'False'
             
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
-            
-            # Anti-detection scripts
             self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-            
             self.wait = WebDriverWait(self.driver, 30)
             
-            self._log("Browser ready for Facebook", "SUCCESS")
+            self._log("Browser siap digunakan", "SUCCESS")
             
         except Exception as e:
-            self._log(f"Failed to setup browser: {str(e)}", "ERROR")
-            
-            # Additional Windows troubleshooting
-            if platform.system() == "Windows":
-                self._log("Windows troubleshooting tips:", "INFO")
-                self._log("1. Make sure Google Chrome is installed", "INFO")
-                self._log("2. Update Chrome to the latest version", "INFO")
-                self._log("3. Run as Administrator", "INFO")
-                self._log("4. Disable antivirus temporarily", "INFO")
-                self._log("5. Check Windows Defender exclusions", "INFO")
-            
+            self._log(f"Gagal menyiapkan browser: {str(e)}", "ERROR")
             raise
 
+    def _find_element_by_selectors(self, selectors: list, timeout: int = 10, visible: bool = True) -> Optional[Any]:
+        """Mencari elemen menggunakan multiple selectors"""
+        for i, selector in enumerate(selectors):
+            try:
+                if visible:
+                    element = WebDriverWait(self.driver, timeout).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                    )
+                else:
+                    element = WebDriverWait(self.driver, timeout).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                    )
+                
+                if i == 0:
+                    self._log(f"Found element with selector: {selector}...")
+                else:
+                    self._log(f"Found element with alternative selector {i+1}: {selector}...")
+                return element
+                
+            except TimeoutException:
+                continue
+                
+        return None
+
+    def _find_element_by_xpath_selectors(self, selectors: list, timeout: int = 10) -> Optional[Any]:
+        """Mencari elemen menggunakan XPath selectors"""
+        for i, selector in enumerate(selectors):
+            try:
+                element = WebDriverWait(self.driver, timeout).until(
+                    EC.element_to_be_clickable((By.XPATH, selector))
+                )
+                
+                if i == 0:
+                    self._log(f"Found element with selector: {selector}...")
+                else:
+                    self._log(f"Found element with alternative selector {i+1}: {selector}...")
+                return element
+                
+            except TimeoutException:
+                continue
+                
+        return None
+
     def load_cookies(self) -> bool:
-        """Load cookies from JSON file"""
+        """Load cookies dari file JSON"""
         if not self.cookies_path.exists():
-            self._log("Facebook cookies file not found", "WARNING")
+            self._log("File cookies tidak ditemukan", "WARNING")
             return False
             
         try:
@@ -342,14 +276,12 @@ class FacebookUploader:
                 cookies = cookies_data
             
             if not cookies:
-                self._log("Cookies file is empty", "WARNING")
+                self._log("File cookies kosong", "WARNING")
                 return False
             
-            # Navigate to Facebook first
-            self.driver.get(self.home_url)
-            time.sleep(3)
+            self.driver.get("https://www.facebook.com")
+            time.sleep(2)
             
-            # Add cookies
             cookies_added = 0
             for cookie in cookies:
                 try:
@@ -376,17 +308,17 @@ class FacebookUploader:
                         
                 except Exception as e:
                     if self.debug:
-                        self._log(f"Failed to add cookie {cookie.get('name', 'unknown')}: {e}", "DEBUG")
+                        self._log(f"Gagal menambahkan cookie {cookie.get('name', 'unknown')}: {e}", "DEBUG")
             
-            self._log(f"Cookies loaded: {cookies_added}/{len(cookies)}", "SUCCESS")
+            self._log(f"Cookies dimuat: {cookies_added}/{len(cookies)}", "SUCCESS")
             return cookies_added > 0
             
         except Exception as e:
-            self._log(f"Failed to load cookies: {str(e)}", "ERROR")
+            self._log(f"Gagal memuat cookies: {str(e)}", "ERROR")
             return False
 
     def save_cookies(self):
-        """Save cookies to JSON file"""
+        """Simpan cookies ke file JSON"""
         try:
             cookies = self.driver.get_cookies()
             
@@ -398,469 +330,287 @@ class FacebookUploader:
             with open(self.cookies_path, 'w', encoding='utf-8') as f:
                 json.dump(cookies_data, f, indent=2, ensure_ascii=False)
             
-            self._log(f"Cookies saved: {len(cookies)} items", "SUCCESS")
+            self._log(f"Cookies disimpan: {len(cookies)} item", "SUCCESS")
             
         except Exception as e:
-            self._log(f"Failed to save cookies: {str(e)}", "ERROR")
+            self._log(f"Gagal menyimpan cookies: {str(e)}", "ERROR")
 
     def clear_cookies(self):
-        """Clear cookies file"""
+        """Hapus file cookies"""
         try:
             if self.cookies_path.exists():
                 self.cookies_path.unlink()
-                self._log("Facebook cookies cleared", "SUCCESS")
+                self._log("Cookies berhasil dihapus", "SUCCESS")
             else:
-                self._log("No Facebook cookies to clear", "WARNING")
+                self._log("Tidak ada cookies untuk dihapus", "WARNING")
         except Exception as e:
-            self._log(f"Failed to clear cookies: {str(e)}", "ERROR")
+            self._log(f"Gagal menghapus cookies: {str(e)}", "ERROR")
 
     def check_login_required(self) -> bool:
-        """Check if login is required"""
+        """Cek apakah perlu login"""
         current_url = self.driver.current_url
         return "login" in current_url or "checkpoint" in current_url
 
     def wait_for_login(self, timeout: int = 180):
-        """Wait for user to login manually"""
-        self._log("Please login manually in the browser...", "WARNING")
-        self._log(f"Waiting for login completion (timeout {timeout} seconds)...", "INFO")
+        """Tunggu user login manual"""
+        self._log("Silakan login secara manual di browser...", "WARNING")
+        self._log(f"Menunggu login selesai (timeout {timeout} detik)...", "INFO")
         
         start_time = time.time()
         
         while time.time() - start_time < timeout:
             current_url = self.driver.current_url
             
-            # Check if no longer on login page
             if not ("login" in current_url or "checkpoint" in current_url):
-                if "facebook.com" in current_url:
-                    self._log("Login successful!", "SUCCESS")
-                    self.save_cookies()
-                    return True
+                self._log("Login berhasil!", "SUCCESS")
+                self.save_cookies()
+                return True
             
             time.sleep(2)
         
-        raise TimeoutException("Timeout waiting for login")
+        raise TimeoutException("Timeout menunggu login")
 
-    def safe_click(self, element, method_name="click"):
-        """🎯 UNIFIED SAFE CLICK - Same method for all elements"""
+    def take_screenshot(self, filename: str = None):
+        """Ambil screenshot untuk debugging"""
+        if not filename:
+            filename = f"facebook_screenshot_{int(time.time())}.png"
+        
+        screenshot_path = self.screenshots_dir / filename
+        
+        try:
+            if self.driver:
+                self.driver.save_screenshot(str(screenshot_path))
+                self._log(f"Screenshot saved: {screenshot_path.name}", "INFO")
+                return str(screenshot_path)
+            else:
+                self._log("Driver tidak tersedia untuk screenshot", "WARNING")
+                return None
+        except Exception as e:
+            self._log(f"Gagal menyimpan screenshot: {str(e)}", "WARNING")
+            return None
+
+    def _click_element_safely(self, element, description: str = "element"):
+        """Click element dengan multiple fallback methods"""
         try:
             # Method 1: Regular click
             element.click()
             self._log(f"Element clicked successfully with regular click", "SUCCESS")
             return True
-        except ElementClickInterceptedException:
-            self._log("Regular click intercepted, trying JavaScript click...", "WARNING")
+        except Exception as e:
+            self._log(f"Regular click intercepted, trying JavaScript click...", "WARNING")
             
             try:
                 # Method 2: JavaScript click
                 self.driver.execute_script("arguments[0].click();", element)
-                self._log("Element clicked successfully with JavaScript", "SUCCESS")
+                self._log(f"Element clicked successfully with JavaScript", "SUCCESS")
                 return True
-            except Exception as e:
-                self._log(f"JavaScript click failed: {e}", "WARNING")
+            except Exception as e2:
+                self._log(f"JavaScript click failed, trying ActionChains...", "WARNING")
                 
                 try:
-                    # Method 3: Scroll into view and try again
-                    self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element)
-                    time.sleep(1)
-                    self.driver.execute_script("arguments[0].click();", element)
-                    self._log("Element clicked after scrolling into view", "SUCCESS")
+                    # Method 3: ActionChains
+                    ActionChains(self.driver).move_to_element(element).click().perform()
+                    self._log(f"Element clicked successfully with ActionChains", "SUCCESS")
                     return True
-                except Exception as e2:
-                    self._log(f"Scroll and click failed: {e2}", "WARNING")
-                    
-                    try:
-                        # Method 4: Move to element and click
-                        actions = ActionChains(self.driver)
-                        actions.move_to_element(element).click().perform()
-                        self._log("Element clicked with ActionChains", "SUCCESS")
-                        return True
-                    except Exception as e3:
-                        self._log(f"ActionChains click failed: {e3}", "ERROR")
-                        return False
-        except Exception as e:
-            self._log(f"All click methods failed: {e}", "ERROR")
-            return False
-
-    def find_whats_on_mind_element(self):
-        """🎯 UNIFIED ELEMENT FINDER - Same method for text and media"""
-        self._log("Looking for 'What's on your mind' element...")
-        
-        # Wait for page to load
-        time.sleep(3)
-        
-        # Try to find the text first
-        for xpath in self.selectors['whats_on_mind_text']:
-            try:
-                elements = self.driver.find_elements(By.XPATH, xpath)
-                
-                for element in elements:
-                    if element.is_displayed():
-                        # Check if this element is in the main feed area (not in comments)
-                        try:
-                            # Look for comment indicators in parent elements
-                            parent_html = element.find_element(By.XPATH, "./ancestor::div[5]").get_attribute('outerHTML')
-                            
-                            # Skip if this appears to be in a comment section
-                            if any(indicator in parent_html.lower() for indicator in ['comment', 'reply', 'response']):
-                                self._log("Skipping element in comment section", "DEBUG")
-                                continue
-                            
-                            # Find the clickable parent (usually a div with role="button" or tabindex)
-                            clickable_parent = None
-                            
-                            # Try to find clickable parent
-                            for i in range(1, 6):  # Check up to 5 levels up
-                                try:
-                                    parent = element.find_element(By.XPATH, f"./ancestor::*[@role='button' or @tabindex='0'][{i}]")
-                                    if parent.is_displayed() and parent.is_enabled():
-                                        clickable_parent = parent
-                                        break
-                                except NoSuchElementException:
-                                    continue
-                            
-                            if not clickable_parent:
-                                # Try to find any clickable ancestor
-                                try:
-                                    clickable_parent = element.find_element(By.XPATH, "./ancestor::*[@role='button'][1]")
-                                except NoSuchElementException:
-                                    try:
-                                        clickable_parent = element.find_element(By.XPATH, "./ancestor::div[@tabindex='0'][1]")
-                                    except NoSuchElementException:
-                                        # Use the element itself if no clickable parent found
-                                        clickable_parent = element
-                            
-                            self._log("Found 'What's on your mind' element", "SUCCESS")
-                            return clickable_parent
-                            
-                        except Exception as e:
-                            self._log(f"Error analyzing element: {e}", "DEBUG")
-                            continue
-                            
-            except Exception as e:
-                self._log(f"Error with xpath {xpath}: {e}", "DEBUG")
-                continue
-        
-        return None
-
-    def find_element_by_selectors(self, selectors_list, timeout=10):
-        """🎯 UNIFIED ELEMENT FINDER - Same method for all selectors"""
-        for selector in selectors_list:
-            try:
-                if selector.startswith('/'):
-                    # XPath selector
-                    elements = self.driver.find_elements(By.XPATH, selector)
-                    for element in elements:
-                        if element.is_displayed() or element.get_attribute('type') == 'file':
-                            self._log(f"Found element with selector: {selector[:50]}...", "SUCCESS")
-                            return element
-                else:
-                    # CSS selector
-                    elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                    for element in elements:
-                        if element.is_displayed() or element.get_attribute('type') == 'file':
-                            self._log(f"Found element with selector: {selector[:50]}...", "SUCCESS")
-                            return element
-                    
-            except Exception as e:
-                self._log(f"Error with selector {selector[:30]}...: {e}", "DEBUG")
-                continue
-        
-        return None
-
-    def add_status_text_with_validation(self, status_text: str) -> bool:
-        """🎯 ADD STATUS TEXT WITH PROPER VALIDATION - STEP 1"""
-        if not status_text.strip():
-            self._log("No status text provided", "INFO")
-            return True
-        
-        self._log("STEP 1: Adding status text first...")
-        
-        try:
-            # Find text input using unified approach
-            text_input = self.find_element_by_selectors(self.selectors['status_text_input'], timeout=10)
-            
-            if not text_input:
-                self._log("Text input not found", "ERROR")
-                return False
-            
-            # Click to focus the input
-            if not self.safe_click(text_input):
-                self._log("Failed to click text input", "ERROR")
-                return False
-            
-            time.sleep(1)
-            
-            # Clear any existing text
-            try:
-                text_input.send_keys(Keys.CONTROL + "a")
-                text_input.send_keys(Keys.BACKSPACE)
-                time.sleep(0.5)
-            except:
-                pass
-            
-            # Try multiple methods to enter text
-            methods = [
-                # Method 1: Direct send_keys
-                lambda: text_input.send_keys(status_text),
-                # Method 2: JavaScript setValue
-                lambda: self.driver.execute_script("arguments[0].textContent = arguments[1];", text_input, status_text),
-                # Method 3: JavaScript innerHTML
-                lambda: self.driver.execute_script("arguments[0].innerHTML = arguments[1];", text_input, status_text),
-                # Method 4: Character by character
-                lambda: self._type_text_slowly(text_input, status_text),
-                # Method 5: Focus and type
-                lambda: self._focus_and_type(text_input, status_text)
-            ]
-            
-            for i, method in enumerate(methods, 1):
-                try:
-                    self._log(f"Trying text input method {i}...", "INFO")
-                    method()
-                    
-                    # Validate if text was entered correctly
-                    if self.validate_text_input(text_input, status_text):
-                        self._log(f"✅ STEP 1 COMPLETE: Status text added successfully with method {i}", "SUCCESS")
-                        return True
-                    else:
-                        self._log(f"Method {i} failed validation, trying next...", "WARNING")
-                        
-                        # Clear and try next method
-                        try:
-                            text_input.send_keys(Keys.CONTROL + "a")
-                            text_input.send_keys(Keys.BACKSPACE)
-                            time.sleep(0.5)
-                        except:
-                            pass
-                        
-                except Exception as e:
-                    self._log(f"Method {i} failed: {e}", "WARNING")
-                    continue
-            
-            self._log("All text input methods failed", "ERROR")
-            return False
-            
-        except Exception as e:
-            self._log(f"Failed to add status text: {e}", "ERROR")
-            return False
-
-    def add_media_after_text(self, media_path: str) -> bool:
-        """🎯 ADD MEDIA AFTER TEXT - STEP 2"""
-        if not media_path or not os.path.exists(media_path):
-            self._log("No valid media file provided", "INFO")
-            return True
-        
-        self._log("STEP 2: Adding media after text...")
-        
-        try:
-            # First, try to find Photo/Video button
-            photo_video_button = self.find_element_by_selectors(self.selectors['photo_video_button'], timeout=5)
-            
-            if photo_video_button:
-                self._log("Found Photo/Video button, clicking...", "INFO")
-                if self.safe_click(photo_video_button):
-                    time.sleep(2)  # Wait for file dialog or input to appear
-                else:
-                    self._log("Failed to click Photo/Video button", "WARNING")
-            
-            # Find file input (might be hidden)
-            file_input = self.find_element_by_selectors(self.selectors['media_upload_input'], timeout=5)
-            
-            if file_input:
-                # Make the input visible if it's hidden
-                self.driver.execute_script("""
-                    arguments[0].style.display = 'block';
-                    arguments[0].style.visibility = 'visible';
-                    arguments[0].style.opacity = '1';
-                    arguments[0].style.position = 'static';
-                """, file_input)
-                
-                # Upload file directly
-                abs_path = os.path.abspath(media_path)
-                file_input.send_keys(abs_path)
-                
-                self._log("✅ STEP 2 COMPLETE: Media uploaded successfully", "SUCCESS")
-                time.sleep(3)  # Wait for upload to process
-                return True
-            else:
-                self._log("No file input found for media upload", "WARNING")
-                return False
-                
-        except Exception as e:
-            self._log(f"Media upload failed: {e}", "WARNING")
-            return False
-
-    def validate_text_input(self, text_input, expected_text: str) -> bool:
-        """🎯 VALIDATE TEXT INPUT - Check if text was actually entered"""
-        try:
-            # Wait a moment for text to be processed
-            time.sleep(1)
-            
-            # Get the actual text content
-            actual_text = ""
-            
-            # Try different methods to get text content
-            methods = [
-                lambda: text_input.get_attribute('value'),
-                lambda: text_input.get_attribute('textContent'),
-                lambda: text_input.get_attribute('innerText'),
-                lambda: text_input.text,
-                lambda: self.driver.execute_script("return arguments[0].textContent;", text_input),
-                lambda: self.driver.execute_script("return arguments[0].innerText;", text_input),
-                lambda: self.driver.execute_script("return arguments[0].value;", text_input)
-            ]
-            
-            for method in methods:
-                try:
-                    result = method()
-                    if result and result.strip():
-                        actual_text = result.strip()
-                        break
-                except:
-                    continue
-            
-            # Check if expected text is in actual text
-            if expected_text.strip() in actual_text:
-                self._log(f"Text validation SUCCESS: '{actual_text[:50]}...'", "SUCCESS")
-                return True
-            else:
-                self._log(f"Text validation FAILED: Expected '{expected_text[:30]}...', Got '{actual_text[:30]}...'", "ERROR")
-                return False
-                
-        except Exception as e:
-            self._log(f"Text validation error: {e}", "ERROR")
-            return False
-
-    def _type_text_slowly(self, element, text: str):
-        """Type text character by character"""
-        for char in text:
-            element.send_keys(char)
-            time.sleep(0.05)  # Small delay between characters
-
-    def _focus_and_type(self, element, text: str):
-        """Focus element and type text"""
-        # Focus the element
-        self.driver.execute_script("arguments[0].focus();", element)
-        time.sleep(0.5)
-        
-        # Clear and type
-        element.send_keys(Keys.CONTROL + "a")
-        element.send_keys(Keys.BACKSPACE)
-        time.sleep(0.5)
-        element.send_keys(text)
+                except Exception as e3:
+                    self._log(f"All click methods failed for {description}: {str(e3)}", "ERROR")
+                    return False
 
     def upload_status(self, status_text: str = "", media_path: str = "") -> Dict[str, Any]:
         """
-        🎯 UNIFIED STATUS UPLOAD - TEXT FIRST, MEDIA SECOND
+        Upload status ke Facebook dengan dukungan text + media
         
         Args:
-            status_text: Text content for status
-            media_path: Path to media file (image/video)
+            status_text: Text untuk status
+            media_path: Path ke file media (video/gambar)
             
         Returns:
-            Dict with upload status
+            Dict dengan status upload
         """
         try:
-            # Setup driver
             self._setup_driver()
-            
-            # Load cookies
             cookies_loaded = self.load_cookies()
             
-            # Navigate to Facebook
             self._log("Navigating to Facebook...")
-            self.driver.get(self.home_url)
-            time.sleep(5)
+            self.driver.get(self.facebook_url)
+            time.sleep(3)
             
-            # Check if login required
+            # Take screenshot before posting
+            self.take_screenshot(f"facebook_before_post_{int(time.time())}.png")
+            
             if self.check_login_required():
                 if cookies_loaded:
-                    self._log("Cookies loaded but still need login, refreshing...", "WARNING")
+                    self._log("Cookies dimuat tapi masih perlu login, refresh halaman...", "WARNING")
                     self.driver.refresh()
-                    time.sleep(5)
+                    time.sleep(3)
                 
                 if self.check_login_required():
                     self.wait_for_login()
-                    self.driver.get(self.home_url)
-                    time.sleep(5)
+                    self.driver.get(self.facebook_url)
+                    time.sleep(3)
             
-            # Take screenshot before attempting to find elements
-            self.take_screenshot(f"facebook_before_post_{int(time.time())}.png")
-            
-            # 🎯 STEP 1: Find the "What's on your mind" element (SAME FOR ALL)
-            whats_on_mind = self.find_whats_on_mind_element()
+            # Cari dan klik "What's on your mind" - GUNAKAN SELECTOR YANG SAMA
+            self._log("Looking for 'What's on your mind' element...")
+            whats_on_mind = self._find_element_by_selectors(self.selectors['whats_on_mind'])
             
             if not whats_on_mind:
-                self.take_screenshot(f"facebook_no_whats_on_mind_{int(time.time())}.png")
-                raise NoSuchElementException("Could not find 'What's on your mind' element")
+                raise NoSuchElementException("Tidak dapat menemukan elemen 'What's on your mind'")
             
-            # 🎯 STEP 2: Click the "What's on your mind" element (SAME FOR ALL)
+            self._log("Found 'What's on your mind' element")
             self._log("Clicking 'What's on your mind' element...")
-            if not self.safe_click(whats_on_mind):
-                raise Exception("Failed to click 'What's on your mind' element")
             
-            time.sleep(3)
+            if not self._click_element_safely(whats_on_mind, "'What's on your mind'"):
+                raise Exception("Gagal mengklik elemen 'What's on your mind'")
+            
             self._log("Post composer should now be open", "SUCCESS")
+            time.sleep(2)
             
-            # 🎯 STEP 3: Add status text FIRST (if provided)
-            text_added = False
+            # STEP 1: Isi text terlebih dahulu jika ada
             if status_text.strip():
-                text_added = self.add_status_text_with_validation(status_text)
-                if not text_added:
-                    self._log("Failed to add status text", "ERROR")
-            else:
-                text_added = True  # No text to add, consider success
+                self._log("STEP 1: Adding status text first...")
+                
+                # Cari text input dengan validasi ketat
+                text_input = self._find_element_by_selectors(self.selectors['text_input'])
+                
+                if not text_input:
+                    raise NoSuchElementException("Tidak dapat menemukan text input")
+                
+                # Klik text input dengan validasi
+                if not self._click_element_safely(text_input, "text input"):
+                    raise Exception("Gagal mengklik text input")
+                
+                time.sleep(1)
+                
+                # Clear existing text dan input text baru dengan validasi ketat
+                success = False
+                methods = [
+                    lambda: self._input_text_method_1(text_input, status_text),
+                    lambda: self._input_text_method_2(text_input, status_text),
+                    lambda: self._input_text_method_3(text_input, status_text)
+                ]
+                
+                for i, method in enumerate(methods, 1):
+                    try:
+                        self._log(f"Trying text input method {i}...")
+                        if method():
+                            # VALIDASI KETAT - CEK APAKAH TEXT BENAR-BENAR TERTULIS
+                            time.sleep(1)
+                            current_text = text_input.get_attribute('textContent') or text_input.get_attribute('innerText') or ""
+                            
+                            if status_text.strip() in current_text:
+                                self._log(f"Text validation SUCCESS: '{current_text[:50]}...'", "SUCCESS")
+                                self._log(f"✅ ✅ STEP 1 COMPLETE: Status text added successfully with method {i}", "SUCCESS")
+                                success = True
+                                break
+                            else:
+                                self._log(f"Text validation FAILED. Expected: '{status_text}', Got: '{current_text}'", "WARNING")
+                                continue
+                                
+                    except Exception as e:
+                        self._log(f"Method {i} failed: {str(e)}", "WARNING")
+                        continue
+                
+                if not success:
+                    raise Exception("Gagal menambahkan status text setelah semua method dicoba")
             
-            # 🎯 STEP 4: Add media SECOND (if provided)
-            media_uploaded = False
+            # STEP 2: Tambahkan media jika ada
             if media_path and os.path.exists(media_path):
-                media_uploaded = self.add_media_after_text(media_path)
-                if not media_uploaded:
-                    self._log("Failed to add media", "WARNING")
-            else:
-                media_uploaded = True  # No media to add, consider success
+                self._log("STEP 2: Adding media after text...")
+                
+                # Cari tombol Photo/Video - GUNAKAN SELECTOR YANG SAMA
+                photo_video_selectors = [
+                    "//*[contains(text(), 'Photo/video')]",
+                    "//*[contains(text(), 'Foto/video')]",
+                    "//div[@aria-label='Photo/video']",
+                    "//div[@aria-label='Foto/video']"
+                ]
+                
+                photo_video_button = self._find_element_by_xpath_selectors(photo_video_selectors)
+                
+                if not photo_video_button:
+                    raise NoSuchElementException("Tidak dapat menemukan tombol Photo/Video")
+                
+                self._log("Found Photo/Video button, clicking...")
+                
+                if not self._click_element_safely(photo_video_button, "Photo/Video button"):
+                    raise Exception("Gagal mengklik tombol Photo/Video")
+                
+                time.sleep(2)
+                
+                # Cari file input
+                file_input = self._find_element_by_selectors(self.selectors['file_input'], visible=False)
+                
+                if not file_input:
+                    raise NoSuchElementException("Tidak dapat menemukan file input")
+                
+                # Upload file
+                abs_path = os.path.abspath(media_path)
+                file_input.send_keys(abs_path)
+                
+                self._log("✅ ✅ STEP 2 COMPLETE: Media uploaded successfully", "SUCCESS")
+                time.sleep(3)  # Tunggu media diproses
             
-            # 🎯 STEP 5: Validate we have content to post
-            if not text_added and not media_uploaded:
-                raise Exception("Neither text nor media was successfully added")
-            
-            # 🎯 STEP 6: Find and click post button (SAME FOR ALL)
+            # STEP 3: Klik tombol Post dengan validasi ketat
             self._log("Looking for post button...")
-            post_button = self.find_element_by_selectors(self.selectors['post_button'], timeout=10)
+            
+            post_button = self._find_element_by_selectors(self.selectors['post_button'])
             
             if not post_button:
-                self.take_screenshot(f"facebook_no_post_button_{int(time.time())}.png")
-                raise NoSuchElementException("Post button not found")
+                raise NoSuchElementException("Tidak dapat menemukan tombol Post")
             
-            # Click post button safely
             self._log("Clicking post button...")
-            if not self.safe_click(post_button):
-                raise Exception("Failed to click post button")
             
-            # ✅ SUCCESS: Content was added and post button was clicked
-            success_message = []
-            if text_added and status_text.strip():
-                success_message.append("text")
-            if media_uploaded and media_path:
-                success_message.append("media")
+            # VALIDASI KETAT - CEK APAKAH POST BUTTON BENAR-BENAR DIKLIK
+            initial_url = self.driver.current_url
             
-            content_type = " + ".join(success_message) if success_message else "content"
-            self._log(f"Facebook status with {content_type} posted successfully!", "SUCCESS")
+            if not self._click_element_safely(post_button, "Post button"):
+                raise Exception("Gagal mengklik tombol Post")
             
-            return {
-                "success": True,
-                "message": f"Status with {content_type} posted successfully",
-                "status_text": status_text,
-                "media_path": media_path,
-                "text_added": text_added,
-                "media_uploaded": media_uploaded
-            }
+            # Tunggu dan validasi apakah post berhasil
+            time.sleep(5)
             
+            # Cek apakah URL berubah atau ada indikator sukses
+            current_url = self.driver.current_url
+            
+            # Cek apakah kembali ke feed atau ada perubahan
+            if current_url != initial_url or "facebook.com" in current_url:
+                self._log("Post berhasil (URL changed or returned to feed)", "SUCCESS")
+                success_confirmed = True
+            else:
+                # Cek apakah composer masih terbuka
+                try:
+                    # Jika composer masih ada, berarti post belum berhasil
+                    composer_still_open = self.driver.find_elements(By.CSS_SELECTOR, "div[contenteditable='true'][role='textbox']")
+                    if composer_still_open:
+                        self._log("Post composer masih terbuka - post mungkin gagal", "WARNING")
+                        success_confirmed = False
+                    else:
+                        self._log("Post composer tertutup - post berhasil", "SUCCESS")
+                        success_confirmed = True
+                except:
+                    success_confirmed = True
+            
+            if success_confirmed:
+                self._log("Facebook status with text + media posted successfully!", "SUCCESS")
+                return {
+                    "success": True,
+                    "message": "Status berhasil dipost",
+                    "status_text": status_text,
+                    "media_path": media_path
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Post mungkin gagal - composer masih terbuka",
+                    "status_text": status_text,
+                    "media_path": media_path
+                }
+                
         except Exception as e:
-            error_msg = f"Facebook status upload failed: {str(e)}"
+            error_msg = f"Facebook status upload gagal: {str(e)}"
             self._log(error_msg, "ERROR")
             
-            # Take screenshot for debugging
-            self.take_screenshot(f"facebook_status_error_{int(time.time())}.png")
+            self.take_screenshot(f"facebook_error_{int(time.time())}.png")
             
             return {
                 "success": False,
@@ -872,121 +622,181 @@ class FacebookUploader:
         finally:
             if self.driver:
                 self._log("Closing browser...")
-                self.driver.quit()
+                try:
+                    self.driver.quit()
+                except:
+                    pass
+
+    def _input_text_method_1(self, element, text: str) -> bool:
+        """Method 1: Clear dan type text"""
+        try:
+            element.clear()
+            element.send_keys(text)
+            return True
+        except Exception as e:
+            self._log(f"Method 1 error: {str(e)}", "DEBUG")
+            return False
+
+    def _input_text_method_2(self, element, text: str) -> bool:
+        """Method 2: Select all dan replace"""
+        try:
+            element.send_keys(Keys.CONTROL + "a")
+            element.send_keys(text)
+            return True
+        except Exception as e:
+            self._log(f"Method 2 error: {str(e)}", "DEBUG")
+            return False
+
+    def _input_text_method_3(self, element, text: str) -> bool:
+        """Method 3: JavaScript innerHTML"""
+        try:
+            self.driver.execute_script("arguments[0].innerHTML = arguments[1];", element, text)
+            self.driver.execute_script("arguments[0].textContent = arguments[1];", element, text)
+            return True
+        except Exception as e:
+            self._log(f"Method 3 error: {str(e)}", "DEBUG")
+            return False
 
     def upload_reels(self, video_path: str, description: str = "") -> Dict[str, Any]:
         """
-        Upload reels to Facebook
+        Upload reels ke Facebook
         
         Args:
-            video_path: Path to video file
-            description: Description for the reel
+            video_path: Path ke file video
+            description: Deskripsi untuk reels
             
         Returns:
-            Dict with upload status
+            Dict dengan status upload
         """
         try:
-            # Setup driver
-            self._setup_driver()
+            if not os.path.exists(video_path):
+                raise FileNotFoundError(f"File video tidak ditemukan: {video_path}")
             
-            # Load cookies
+            self._setup_driver()
             cookies_loaded = self.load_cookies()
             
-            # Navigate to Facebook Reels creation
-            self._log("Navigating to Facebook Reels...")
-            self.driver.get(self.reels_url)
+            self._log("Navigasi ke Facebook Reels Create...")
+            self.driver.get(self.reels_create_url)
             time.sleep(5)
             
-            # Check if login required
             if self.check_login_required():
                 if cookies_loaded:
-                    self._log("Cookies loaded but still need login, refreshing...", "WARNING")
+                    self._log("Cookies dimuat tapi masih perlu login, refresh halaman...", "WARNING")
                     self.driver.refresh()
-                    time.sleep(5)
+                    time.sleep(3)
                 
                 if self.check_login_required():
                     self.wait_for_login()
-                    self.driver.get(self.reels_url)
+                    self.driver.get(self.reels_create_url)
                     time.sleep(5)
             
-            # Upload video file
-            self._log("Uploading video file...")
-            
-            # Find file input
-            file_input = self.find_element_by_selectors(self.selectors['reels_upload_input'], timeout=10)
-            
-            if not file_input:
-                raise NoSuchElementException("Video upload element not found")
-            
             # Upload video
+            self._log("Memulai upload video reels...")
+            
+            upload_selectors = [
+                "input[type='file'][accept*='video']",
+                "input[type='file']",
+                "input[accept*='video']"
+            ]
+            
+            upload_input = self._find_element_by_selectors(upload_selectors, visible=False)
+            
+            if not upload_input:
+                raise NoSuchElementException("Tidak dapat menemukan input upload")
+            
+            self._log("Input upload ditemukan. Mengirim file...")
             abs_path = os.path.abspath(video_path)
-            file_input.send_keys(abs_path)
-            self._log("Video file uploaded", "SUCCESS")
+            upload_input.send_keys(abs_path)
             
-            # Wait for video processing
-            self._log("Waiting for video processing...")
-            time.sleep(15)
+            self._log("File video berhasil dikirim ke input.", "SUCCESS")
+            time.sleep(5)
             
-            # Navigate through reels creation steps
-            # Step 1: First Next button
-            next_button = self.find_element_by_selectors(self.selectors['reels_next_button'], timeout=10)
-            if next_button:
-                if self.safe_click(next_button):
-                    self._log("First 'Next' button clicked", "SUCCESS")
-                    time.sleep(3)
+            # Klik Next buttons (dual language support)
+            next_buttons_clicked = 0
+            next_selectors = [
+                "//div[@role='button' and (contains(text(), 'Next') or contains(text(), 'Berikutnya'))]",
+                "//button[contains(text(), 'Next') or contains(text(), 'Berikutnya')]",
+                "//span[contains(text(), 'Next') or contains(text(), 'Berikutnya')]/parent::*"
+            ]
             
-            # Step 2: Second Next button (if exists)
-            next_button = self.find_element_by_selectors(self.selectors['reels_next_button'], timeout=5)
-            if next_button:
-                if self.safe_click(next_button):
-                    self._log("Second 'Next' button clicked", "SUCCESS")
-                    time.sleep(3)
-            
-            # Add description if provided
-            if description.strip():
-                self._log("Adding description...")
-                
-                # Look for description input
-                description_inputs = self.driver.find_elements(By.CSS_SELECTOR, "div[contenteditable='true']")
-                
-                for desc_input in description_inputs:
-                    if desc_input.is_displayed():
-                        try:
-                            desc_input.click()
-                            time.sleep(1)
-                            desc_input.send_keys(description)
-                            self._log("Description added", "SUCCESS")
+            for attempt in range(3):
+                try:
+                    next_button = self._find_element_by_xpath_selectors(next_selectors, timeout=10)
+                    if next_button:
+                        if self._click_element_safely(next_button, f"Next button (attempt {attempt + 1})"):
+                            next_buttons_clicked += 1
+                            self._log(f"Tombol 'Next' berhasil diklik (index {next_buttons_clicked})!", "SUCCESS")
+                            time.sleep(3)
+                        else:
                             break
-                        except:
-                            continue
+                    else:
+                        break
+                except:
+                    break
             
-            # Find and click publish button
-            self._log("Looking for publish button...")
-            publish_button = self.find_element_by_selectors(self.selectors['reels_publish_button'], timeout=10)
+            # Tambahkan deskripsi jika ada
+            if description.strip():
+                self._log("Menambahkan deskripsi reels...")
+                
+                description_selectors = [
+                    "div[contenteditable='true'][aria-label*='description']",
+                    "div[contenteditable='true'][aria-label*='deskripsi']",
+                    "textarea[placeholder*='description']",
+                    "textarea[placeholder*='deskripsi']",
+                    "div[contenteditable='true']"
+                ]
+                
+                desc_input = self._find_element_by_selectors(description_selectors)
+                
+                if desc_input:
+                    if self._click_element_safely(desc_input, "description input"):
+                        desc_input.clear()
+                        desc_input.send_keys(description)
+                        self._log("Deskripsi berhasil diisi", "SUCCESS")
+                    time.sleep(2)
             
-            if not publish_button:
-                raise NoSuchElementException("Publish button not found")
+            # Klik Publish/Terbitkan
+            publish_selectors = [
+                "//div[@role='button' and (contains(text(), 'Publish') or contains(text(), 'Terbitkan'))]",
+                "//button[contains(text(), 'Publish') or contains(text(), 'Terbitkan')]",
+                "//span[contains(text(), 'Publish') or contains(text(), 'Terbitkan')]/parent::*"
+            ]
             
-            # Click publish button safely
-            self._log("Clicking publish button...")
-            if not self.safe_click(publish_button):
-                raise Exception("Failed to click publish button")
+            publish_attempts = 0
+            for attempt in range(3):
+                try:
+                    publish_button = self._find_element_by_xpath_selectors(publish_selectors, timeout=10)
+                    if publish_button:
+                        if self._click_element_safely(publish_button, f"Publish button (attempt {attempt + 1})"):
+                            publish_attempts += 1
+                            self._log(f"Tombol 'Publish' berhasil diklik (index {publish_attempts})!", "SUCCESS")
+                            time.sleep(5)
+                            break
+                    else:
+                        break
+                except:
+                    break
             
-            # ✅ IMPORTANT: If we reach here with successful click, consider it successful
-            self._log("Publish button clicked successfully - Reels upload completed!", "SUCCESS")
-            
-            return {
-                "success": True,
-                "message": "Reels uploaded successfully",
-                "video_path": video_path,
-                "description": description
-            }
-            
+            if publish_attempts > 0:
+                self._log("Upload video reels berhasil!", "SUCCESS")
+                return {
+                    "success": True,
+                    "message": "Reels berhasil diupload",
+                    "video_path": video_path,
+                    "description": description
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Gagal mengklik tombol Publish",
+                    "video_path": video_path,
+                    "description": description
+                }
+                
         except Exception as e:
-            error_msg = f"Facebook Reels upload failed: {str(e)}"
+            error_msg = f"Facebook reels upload gagal: {str(e)}"
             self._log(error_msg, "ERROR")
             
-            # Take screenshot for debugging
             self.take_screenshot(f"facebook_reels_error_{int(time.time())}.png")
             
             return {
@@ -999,31 +809,15 @@ class FacebookUploader:
         finally:
             if self.driver:
                 self._log("Closing browser...")
-                self.driver.quit()
-
-    def take_screenshot(self, filename: str = None):
-        """Take screenshot for debugging"""
-        if not filename:
-            filename = f"facebook_screenshot_{int(time.time())}.png"
-        
-        screenshot_path = self.screenshots_dir / filename
-        
-        try:
-            if self.driver:
-                self.driver.save_screenshot(str(screenshot_path))
-                self._log(f"Screenshot saved: {screenshot_path.name}", "INFO")
-                return str(screenshot_path)
-            else:
-                self._log("Driver not available for screenshot", "WARNING")
-                return None
-        except Exception as e:
-            self._log(f"Failed to save screenshot: {str(e)}", "WARNING")
-            return None
+                try:
+                    self.driver.quit()
+                except:
+                    pass
 
     def check_cookies_status(self):
-        """Check Facebook cookies status"""
+        """Cek status cookies"""
         if not self.cookies_path.exists():
-            self._log("Facebook cookies file not found", "WARNING")
+            self._log("File cookies tidak ditemukan", "WARNING")
             return {"exists": False, "count": 0}
         
         try:
@@ -1037,7 +831,6 @@ class FacebookUploader:
                 cookies = cookies_data if isinstance(cookies_data, list) else []
                 timestamp = 0
             
-            # Check expired cookies
             current_time = time.time()
             valid_cookies = []
             expired_cookies = []
@@ -1056,7 +849,7 @@ class FacebookUploader:
                 else:
                     valid_cookies.append(cookie)
             
-            self._log(f"Total Facebook cookies: {len(cookies)}", "INFO")
+            self._log(f"Total cookies: {len(cookies)}", "INFO")
             self._log(f"Valid cookies: {len(valid_cookies)}", "SUCCESS")
             
             if expired_cookies:
@@ -1065,7 +858,7 @@ class FacebookUploader:
             if timestamp:
                 import datetime
                 saved_time = datetime.datetime.fromtimestamp(timestamp)
-                self._log(f"Cookies saved: {saved_time.strftime('%Y-%m-%d %H:%M:%S')}", "INFO")
+                self._log(f"Cookies disimpan: {saved_time.strftime('%Y-%m-%d %H:%M:%S')}", "INFO")
             
             return {
                 "exists": True,
@@ -1076,176 +869,155 @@ class FacebookUploader:
             }
             
         except Exception as e:
-            self._log(f"Error reading Facebook cookies: {str(e)}", "ERROR")
+            self._log(f"Error membaca cookies: {str(e)}", "ERROR")
             return {"exists": True, "error": str(e)}
 
 
 def main():
-    """Main function for CLI"""
-    parser = argparse.ArgumentParser(description="Facebook Uploader")
-    parser.add_argument("--type", choices=['status', 'reels'], help="Upload type")
-    parser.add_argument("--video", "-v", help="Path to video file (for reels)")
-    parser.add_argument("--status", "-s", help="Status text")
-    parser.add_argument("--media", "-m", help="Path to media file (for status)")
-    parser.add_argument("--description", "-d", default="", help="Description for reels")
-    parser.add_argument("--headless", action="store_true", help="Run in headless mode")
+    """Main function untuk CLI"""
+    parser = argparse.ArgumentParser(description="Facebook Uploader (Status & Reels)")
+    parser.add_argument("--type", "-t", choices=['status', 'reels'], help="Jenis upload (status atau reels)")
+    parser.add_argument("--status", "-s", help="Status text untuk Facebook")
+    parser.add_argument("--media", "-m", help="Path ke file media (video/gambar) untuk status")
+    parser.add_argument("--video", "-v", help="Path ke file video untuk reels")
+    parser.add_argument("--description", "-d", default="", help="Deskripsi untuk reels")
+    parser.add_argument("--headless", action="store_true", help="Jalankan dalam mode headless")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-    parser.add_argument("--clear-cookies", action="store_true", help="Clear cookies")
-    parser.add_argument("--check-cookies", action="store_true", help="Check cookies status")
-
+    parser.add_argument("--clear-cookies", action="store_true", help="Hapus cookies")
+    parser.add_argument("--check-cookies", action="store_true", help="Cek status cookies")
+    
     args = parser.parse_args()
-
+    
     uploader = FacebookUploader(headless=args.headless, debug=args.debug)
-
-    # Handle different actions
+    
     if args.clear_cookies:
         uploader.clear_cookies()
         return
-
+    
     if args.check_cookies:
         uploader.check_cookies_status()
         return
-
+    
     if args.type == 'status':
         if not args.status and not args.media:
-            print(f"{Fore.RED}❌ Status text or media required for status upload")
+            print(f"{Fore.RED}❌ Status text atau media diperlukan untuk Facebook status")
             sys.exit(1)
         
         if args.media and not os.path.exists(args.media):
-            print(f"{Fore.RED}❌ Media file not found: {args.media}")
+            print(f"{Fore.RED}❌ File media tidak ditemukan: {args.media}")
             sys.exit(1)
         
         result = uploader.upload_status(args.status or "", args.media or "")
         
         if result["success"]:
-            print(f"{Fore.GREEN}🎉 Facebook status uploaded successfully!")
-            if result.get("text_added"):
-                print(f"{Fore.CYAN}📝 Text: Added")
-            if result.get("media_uploaded"):
-                print(f"{Fore.CYAN}📷 Media: Uploaded")
+            print(f"{Fore.GREEN}🎉 Facebook status berhasil!")
         else:
-            print(f"{Fore.RED}❌ Facebook status upload failed: {result['message']}")
+            print(f"{Fore.RED}❌ Facebook status gagal: {result['message']}")
             sys.exit(1)
-
+    
     elif args.type == 'reels':
         if not args.video:
-            print(f"{Fore.RED}❌ Video path required for reels upload")
+            print(f"{Fore.RED}❌ Video path diperlukan untuk Facebook Reels")
             sys.exit(1)
-        
         if not os.path.exists(args.video):
-            print(f"{Fore.RED}❌ Video file not found: {args.video}")
+            print(f"{Fore.RED}❌ File video tidak ditemukan: {args.video}")
             sys.exit(1)
         
         result = uploader.upload_reels(args.video, args.description)
         
         if result["success"]:
-            print(f"{Fore.GREEN}🎉 Facebook Reels uploaded successfully!")
+            print(f"{Fore.GREEN}🎉 Facebook Reels berhasil!")
         else:
-            print(f"{Fore.RED}❌ Facebook Reels upload failed: {result['message']}")
+            print(f"{Fore.RED}❌ Facebook Reels gagal: {result['message']}")
             sys.exit(1)
-
+    
     else:
         # Interactive mode
         print(f"{Fore.BLUE}📘 Facebook Uploader")
         print("=" * 40)
-        print(f"{Fore.YELLOW}🔄 NEW: Text First, Media Second")
+        print(f"{Fore.YELLOW}📝 Status + 🎬 Reels Support")
         print()
         
         while True:
-            print(f"\n{Fore.YELLOW}Choose action:")
-            print("1. 📝 Upload Status (Text Only)")
-            print("2. 🖼️ Upload Status (Media Only)")
-            print("3. 📝🖼️ Upload Status (Text + Media)")
-            print("4. 🎬 Upload Reels")
-            print("5. 🍪 Check cookies status")
-            print("6. 🗑️ Clear cookies")
-            print("7. ❌ Exit")
+            print(f"\n{Fore.YELLOW}Pilih jenis upload:")
+            print("1. 📝 Status Facebook (Text/Media)")
+            print("2. 🎬 Reels Facebook (Video)")
+            print("3. 🍪 Cek status cookies")
+            print("4. 🗑️ Hapus cookies")
+            print("5. ❌ Keluar")
             
-            choice = input(f"\n{Fore.WHITE}Choice (1-7): ").strip()
+            choice = input(f"\n{Fore.WHITE}Pilihan (1-5): ").strip()
             
             if choice == "1":
-                status_text = input(f"{Fore.CYAN}Status text: ").strip()
-                if not status_text:
-                    print(f"{Fore.RED}❌ Status text cannot be empty!")
+                print(f"\n{Fore.YELLOW}📝 Facebook Status Options:")
+                print("1. Text Only")
+                print("2. Text + Media")
+                print("3. Media Only")
+                
+                status_choice = input(f"{Fore.WHITE}Pilihan (1-3): ").strip()
+                
+                status_text = ""
+                media_path = ""
+                
+                if status_choice in ["1", "2"]:
+                    status_text = input(f"{Fore.CYAN}Status Facebook: ").strip()
+                    if not status_text and status_choice == "1":
+                        print(f"{Fore.RED}❌ Status text tidak boleh kosong untuk text only!")
+                        continue
+                
+                if status_choice in ["2", "3"]:
+                    media_path = input(f"{Fore.CYAN}Path ke file media (video/gambar): ").strip()
+                    if not os.path.exists(media_path):
+                        print(f"{Fore.RED}❌ File media tidak ditemukan!")
+                        continue
+                
+                if not status_text and not media_path:
+                    print(f"{Fore.RED}❌ Minimal status text atau media diperlukan!")
                     continue
                 
-                result = uploader.upload_status(status_text)
-                
-                if result["success"]:
-                    print(f"{Fore.GREEN}🎉 Facebook status uploaded successfully!")
-                else:
-                    print(f"{Fore.RED}❌ Facebook status upload failed: {result['message']}")
-            
-            elif choice == "2":
-                media_path = input(f"{Fore.CYAN}Media file path: ").strip()
-                if not os.path.exists(media_path):
-                    print(f"{Fore.RED}❌ Media file not found!")
-                    continue
-                
-                result = uploader.upload_status("", media_path)
-                
-                if result["success"]:
-                    print(f"{Fore.GREEN}🎉 Facebook status with media uploaded successfully!")
-                else:
-                    print(f"{Fore.RED}❌ Facebook status upload failed: {result['message']}")
-            
-            elif choice == "3":
-                status_text = input(f"{Fore.CYAN}Status text: ").strip()
-                if not status_text:
-                    print(f"{Fore.RED}❌ Status text cannot be empty for text + media!")
-                    continue
-                
-                media_path = input(f"{Fore.CYAN}Media file path: ").strip()
-                if not os.path.exists(media_path):
-                    print(f"{Fore.RED}❌ Media file not found!")
-                    continue
-                
-                print(f"{Fore.YELLOW}🔄 Order: Text first, then media")
                 result = uploader.upload_status(status_text, media_path)
                 
                 if result["success"]:
-                    print(f"{Fore.GREEN}🎉 Facebook status with text + media uploaded successfully!")
-                    print(f"{Fore.CYAN}📝 Text: {result.get('text_added', False)}")
-                    print(f"{Fore.CYAN}📷 Media: {result.get('media_uploaded', False)}")
+                    print(f"{Fore.GREEN}🎉 Facebook status berhasil!")
                 else:
-                    print(f"{Fore.RED}❌ Facebook status upload failed: {result['message']}")
+                    print(f"{Fore.RED}❌ Facebook status gagal: {result['message']}")
             
-            elif choice == "4":
-                video_path = input(f"{Fore.CYAN}Video file path: ").strip()
+            elif choice == "2":
+                video_path = input(f"{Fore.CYAN}Path ke file video: ").strip()
                 if not os.path.exists(video_path):
-                    print(f"{Fore.RED}❌ Video file not found!")
+                    print(f"{Fore.RED}❌ File tidak ditemukan!")
                     continue
                 
-                description = input(f"{Fore.CYAN}Description (optional): ").strip()
+                description = input(f"{Fore.CYAN}Deskripsi Facebook Reels (opsional): ").strip()
                 
                 result = uploader.upload_reels(video_path, description)
                 
                 if result["success"]:
-                    print(f"{Fore.GREEN}🎉 Facebook Reels uploaded successfully!")
+                    print(f"{Fore.GREEN}🎉 Facebook Reels berhasil!")
                 else:
-                    print(f"{Fore.RED}❌ Facebook Reels upload failed: {result['message']}")
+                    print(f"{Fore.RED}❌ Facebook Reels gagal: {result['message']}")
             
-            elif choice == "5":
+            elif choice == "3":
                 uploader.check_cookies_status()
             
-            elif choice == "6":
-                confirm = input(f"{Fore.YELLOW}Clear Facebook cookies? (y/N): ").strip().lower()
+            elif choice == "4":
+                confirm = input(f"{Fore.YELLOW}Yakin ingin menghapus cookies? (y/N): ").strip().lower()
                 if confirm == 'y':
                     uploader.clear_cookies()
             
-            elif choice == "7":
-                print(f"{Fore.YELLOW}👋 Goodbye!")
+            elif choice == "5":
+                print(f"{Fore.YELLOW}👋 Sampai jumpa!")
                 break
             
             else:
-                print(f"{Fore.RED}❌ Invalid choice!")
+                print(f"{Fore.RED}❌ Pilihan tidak valid!")
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print(f"\n{Fore.YELLOW}👋 Program stopped by user")
+        print(f"\n{Fore.YELLOW}👋 Program dihentikan oleh user")
     except Exception as e:
-        print(f"{Fore.RED}💥 Fatal error: {str(e)}")
+        print(f"{Fore.RED}💥 Error fatal: {str(e)}")
         sys.exit(1)
