@@ -507,6 +507,46 @@ class FacebookUploader:
         self._log("⚠️ MEDIA VALIDATION: Cannot confirm, but continuing...")
         return True  # Continue anyway
 
+    def _wait_for_post_button_enabled(self, timeout: int = 30) -> bool:
+        """Tunggu sampai Post button enabled (tidak disabled)"""
+        self._log("⏳ WAITING: For Post button to be enabled...")
+        
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            try:
+                # Cari post button yang enabled
+                enabled_post_button = self.driver.find_element(
+                    By.CSS_SELECTOR, 
+                    "div[aria-label='Post'][role='button']:not([aria-disabled='true'])"
+                )
+                
+                if enabled_post_button and enabled_post_button.is_enabled():
+                    self._log("✅ POST BUTTON ENABLED: Ready to click")
+                    return True
+                    
+            except NoSuchElementException:
+                pass
+            
+            # Cek juga dengan XPath
+            try:
+                enabled_post_button = self.driver.find_element(
+                    By.XPATH, 
+                    "//div[@role='button' and contains(@aria-label, 'Post') and not(@aria-disabled='true')]"
+                )
+                
+                if enabled_post_button and enabled_post_button.is_enabled():
+                    self._log("✅ POST BUTTON ENABLED: Ready to click (XPath)")
+                    return True
+                    
+            except NoSuchElementException:
+                pass
+            
+            time.sleep(1)
+        
+        self._log("⚠️ POST BUTTON TIMEOUT: Still disabled, but continuing...")
+        return False
+
     def upload_status(self, status_text: str = "", media_path: str = "") -> Dict[str, Any]:
         """
         Upload status ke Facebook dengan dukungan text + media
@@ -603,7 +643,7 @@ class FacebookUploader:
                 file_input.send_keys(abs_path)
                 
                 self._log("✅ STEP 2 COMPLETE: Media uploaded successfully")
-                time.sleep(3)  # Tunggu media diproses
+                time.sleep(5)  # Tunggu media diproses lebih lama
                 
                 # Validate media uploaded
                 self._validate_media_uploaded()
@@ -659,16 +699,38 @@ class FacebookUploader:
                 if not success:
                     raise Exception("Gagal menambahkan status text setelah semua method dicoba")
             
-            # STEP 4: Klik tombol Post dengan validasi ketat
+            # STEP 4: Tunggu Post button enabled, lalu klik
             final_step = "4" if has_media and has_text else ("3" if has_media or has_text else "2")
-            self._log(f"🎯 STEP {final_step}: Clicking Post button...")
+            self._log(f"🎯 STEP {final_step}: Waiting for Post button to be enabled...")
             
-            post_button = self._find_element_by_selectors(self.selectors['post_button'])
+            # Tunggu Post button enabled
+            self._wait_for_post_button_enabled(timeout=30)
+            
+            # Cari Post button yang enabled
+            post_button = None
+            
+            # Coba cari Post button yang tidak disabled
+            try:
+                post_button = self.driver.find_element(
+                    By.CSS_SELECTOR, 
+                    "div[aria-label='Post'][role='button']:not([aria-disabled='true'])"
+                )
+                self._log("✅ Found ENABLED Post button (CSS)")
+            except NoSuchElementException:
+                try:
+                    post_button = self.driver.find_element(
+                        By.XPATH, 
+                        "//div[@role='button' and contains(@aria-label, 'Post') and not(@aria-disabled='true')]"
+                    )
+                    self._log("✅ Found ENABLED Post button (XPath)")
+                except NoSuchElementException:
+                    # Fallback ke Post button biasa
+                    post_button = self._find_element_by_selectors(self.selectors['post_button'])
+                    if post_button:
+                        self._log("⚠️ Found Post button (may be disabled)")
             
             if not post_button:
                 raise NoSuchElementException("Tidak dapat menemukan tombol Post")
-            
-            self._log("✅ Found Post button")
             
             # VALIDASI KETAT - CEK APAKAH POST BUTTON BENAR-BENAR DIKLIK
             initial_url = self.driver.current_url
