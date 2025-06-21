@@ -81,22 +81,6 @@ class FacebookUploader:
                 "//div[contains(@class, 'notranslate') and @contenteditable='true']"
             ],
             
-            # CSS Selectors untuk text area - lebih spesifik
-            'composer_text_area_css': [
-                # Selector berdasarkan class dan attributes yang tepat
-                "div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate[contenteditable='true'][role='textbox']",
-                "div[contenteditable='true'][role='textbox'][data-lexical-editor='true']",
-                "div.notranslate[contenteditable='true'][role='textbox']",
-                "div[contenteditable='true'][aria-placeholder*=\"What's on your mind\"]",
-                # Fallback dengan class utama
-                "div.xzsf02u[contenteditable='true']",
-                "div.x1a2a7pz[contenteditable='true']",
-                "div[data-lexical-editor='true']",
-                # Fallback umum
-                "div[contenteditable='true'][role='textbox']",
-                "div[contenteditable='true']"
-            ],
-            
             # XPath untuk text area SETELAH media diupload - berdasarkan screenshot
             'composer_text_area_after_media': [
                 # Berdasarkan screenshot: area text di atas video dengan placeholder "What's on your mind, Kurniawan?"
@@ -135,14 +119,15 @@ class FacebookUploader:
                 "//input[@multiple and @type='file' and contains(@accept, 'video')]"
             ],
             
-            # Selectors untuk verifikasi media upload
+            # Selector untuk verifikasi media upload
             'media_verification': [
                 # Video element yang menunjukkan media sudah ter-upload
-                "video",
-                "img[src*='blob:']",
-                "div[role='img']",
-                "div.x1obq294.x5a5i1n.xde0f50.x15x8krk.x6ikm8r.x10wlt62.x1n2onr6.xh8yej3 video",
-                "div[data-visualcompletion='ignore'] video"
+                "//video",
+                "//img[contains(@src, 'blob:')]",
+                "//div[contains(@aria-label, 'Video')]",
+                "//div[contains(@class, 'x1lliihq')]//video",
+                "//div[contains(text(), 'Video Options')]",
+                "//button[contains(text(), 'Video Options')]"
             ]
         }
 
@@ -308,27 +293,6 @@ class FacebookUploader:
         self._log("Semua XPath selector gagal", "WARNING")
         return None
 
-    def _find_element_by_css_list(self, css_list: list, timeout: int = 10) -> Optional[Any]:
-        """Mencari elemen menggunakan multiple CSS selectors"""
-        for i, css in enumerate(css_list):
-            try:
-                element = WebDriverWait(self.driver, timeout).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, css))
-                )
-                
-                # Cek apakah element bisa menerima input
-                if element.is_displayed() and element.is_enabled():
-                    # Cek apakah contenteditable
-                    if element.get_attribute('contenteditable') == 'true':
-                        self._log(f"Text element ditemukan dengan CSS #{i+1}", "SUCCESS")
-                        return element
-                    
-            except TimeoutException:
-                continue
-        
-        self._log("Semua CSS selector gagal", "WARNING")
-        return None
-
     def _find_text_element_by_xpath_list(self, xpath_list: list, timeout: int = 10) -> Optional[Any]:
         """Mencari text element yang bisa menerima input"""
         for i, xpath in enumerate(xpath_list):
@@ -378,10 +342,10 @@ class FacebookUploader:
         """Verifikasi apakah media sudah ter-upload dengan benar"""
         self._log("Memverifikasi apakah media sudah ter-upload...")
         
-        for i, selector in enumerate(self.selectors['media_verification']):
+        for i, xpath in enumerate(self.selectors['media_verification']):
             try:
                 element = WebDriverWait(self.driver, timeout).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                    EC.presence_of_element_located((By.XPATH, xpath))
                 )
                 
                 if element.is_displayed():
@@ -391,138 +355,185 @@ class FacebookUploader:
             except TimeoutException:
                 continue
         
-        self._log("⚠️ Media upload tidak dapat diverifikasi", "WARNING")
+        self._log("❌ Media upload tidak dapat diverifikasi", "WARNING")
         return False
 
-    def _input_text_directly_after_media(self, text: str) -> bool:
-        """Input text langsung setelah media upload tanpa mencari elemen baru"""
-        self._log(f"🎯 Mengetik langsung setelah media upload: {text[:50]}...")
+    def _input_text_in_same_composer(self, text: str) -> bool:
+        """Input text di composer yang sama setelah media upload - TANPA membuat composer baru"""
+        self._log("🎯 Mengetik text di composer yang sama (tanpa membuat composer baru)...")
         
-        # Strategi 1: Klik di area yang sama dan ketik langsung
-        try:
-            self._log("Strategi 1: Klik di area composer dan ketik langsung...")
+        strategies = [
+            # Strategy 1: Cari elemen contenteditable yang visible di composer yang sudah terbuka
+            lambda t: self._strategy_find_contenteditable_in_current_composer(t),
             
-            # Klik di area composer (di atas video)
-            composer_area = self.driver.find_element(By.CSS_SELECTOR, "form")
-            ActionChains(self.driver).move_to_element(composer_area).click().perform()
-            time.sleep(0.5)
+            # Strategy 2: Klik di area atas video dan ketik
+            lambda t: self._strategy_click_above_video_and_type(t),
             
-            # Ketik langsung
-            ActionChains(self.driver).send_keys(text).perform()
-            time.sleep(1)
+            # Strategy 3: Focus pada form dan ketik
+            lambda t: self._strategy_focus_form_and_type(t),
             
-            # Verifikasi dengan mencari text di halaman
-            page_source = self.driver.page_source
-            if text.lower() in page_source.lower():
-                self._log(f"✅ Text berhasil diketik langsung!", "SUCCESS")
-                return True
+            # Strategy 4: JavaScript injection langsung ke elemen yang tepat
+            lambda t: self._strategy_javascript_injection(t),
+            
+            # Strategy 5: Simulasi Tab dan ketik
+            lambda t: self._strategy_tab_and_type(t)
+        ]
+        
+        for i, strategy in enumerate(strategies, 1):
+            try:
+                self._log(f"🎯 Mencoba strategi #{i}...")
                 
-        except Exception as e:
-            self._log(f"Strategi 1 gagal: {str(e)}", "DEBUG")
+                if strategy(text):
+                    # Verifikasi dengan mencari text di halaman
+                    time.sleep(2)
+                    page_source = self.driver.page_source
+                    if text.lower() in page_source.lower():
+                        self._log(f"✅ ✅ Text berhasil diketik dengan strategi #{i}!", "SUCCESS")
+                        return True
+                    else:
+                        self._log(f"⚠️ Strategi #{i} tidak terverifikasi", "WARNING")
+                        
+            except Exception as e:
+                self._log(f"❌ Strategi #{i} gagal: {str(e)}", "DEBUG")
+                continue
         
-        # Strategi 2: Focus pada body dan ketik
+        self._log("❌ ❌ Semua strategi input text di composer yang sama gagal", "ERROR")
+        return False
+
+    def _strategy_find_contenteditable_in_current_composer(self, text: str) -> bool:
+        """Strategy 1: Cari elemen contenteditable di composer yang sudah terbuka"""
         try:
-            self._log("Strategi 2: Focus pada body dan ketik...")
-            
-            body = self.driver.find_element(By.TAG_NAME, "body")
-            body.click()
-            time.sleep(0.3)
-            
-            # Ketik langsung
-            ActionChains(self.driver).send_keys(text).perform()
-            time.sleep(1)
-            
-            # Verifikasi
-            page_source = self.driver.page_source
-            if text.lower() in page_source.lower():
-                self._log(f"✅ Text berhasil diketik dengan strategi 2!", "SUCCESS")
-                return True
-                
-        except Exception as e:
-            self._log(f"Strategi 2 gagal: {str(e)}", "DEBUG")
-        
-        # Strategi 3: Cari elemen contenteditable yang aktif
-        try:
-            self._log("Strategi 3: Cari elemen contenteditable aktif...")
-            
             # Cari semua elemen contenteditable yang visible
-            editable_elements = self.driver.find_elements(By.CSS_SELECTOR, "div[contenteditable='true']")
+            elements = self.driver.find_elements(By.CSS_SELECTOR, "div[contenteditable='true']")
             
-            for element in editable_elements:
+            for element in elements:
                 if element.is_displayed() and element.is_enabled():
-                    try:
+                    # Cek apakah elemen ini ada di dalam composer (form)
+                    parent_form = element.find_element(By.XPATH, "./ancestor::form")
+                    if parent_form:
+                        self._log("Menemukan text area di dalam composer yang sudah terbuka")
                         element.click()
-                        time.sleep(0.3)
+                        time.sleep(0.5)
                         element.clear()
                         element.send_keys(text)
-                        time.sleep(1)
-                        
-                        # Verifikasi
-                        current_text = element.text or element.get_attribute('textContent') or ""
-                        if text.lower() in current_text.lower():
-                            self._log(f"✅ Text berhasil diketik dengan strategi 3!", "SUCCESS")
-                            return True
-                    except:
-                        continue
+                        return True
                         
         except Exception as e:
-            self._log(f"Strategi 3 gagal: {str(e)}", "DEBUG")
+            self._log(f"Strategy 1 error: {str(e)}", "DEBUG")
+            return False
         
-        # Strategi 4: JavaScript injection langsung
+        return False
+
+    def _strategy_click_above_video_and_type(self, text: str) -> bool:
+        """Strategy 2: Klik di area atas video dan ketik"""
         try:
-            self._log("Strategi 4: JavaScript injection langsung...")
-            
-            # Cari elemen dengan placeholder "What's on your mind"
+            # Cari video element
+            video = self.driver.find_element(By.TAG_NAME, "video")
+            if video.is_displayed():
+                # Klik di area atas video (kemungkinan ada text area di sana)
+                video_location = video.location
+                video_size = video.size
+                
+                # Klik di atas video
+                click_x = video_location['x'] + (video_size['width'] // 2)
+                click_y = video_location['y'] - 50  # 50px di atas video
+                
+                ActionChains(self.driver).move_by_offset(click_x, click_y).click().perform()
+                time.sleep(0.5)
+                
+                # Ketik text
+                ActionChains(self.driver).send_keys(text).perform()
+                return True
+                
+        except Exception as e:
+            self._log(f"Strategy 2 error: {str(e)}", "DEBUG")
+            return False
+        
+        return False
+
+    def _strategy_focus_form_and_type(self, text: str) -> bool:
+        """Strategy 3: Focus pada form dan ketik"""
+        try:
+            # Cari form composer
+            form = self.driver.find_element(By.TAG_NAME, "form")
+            if form.is_displayed():
+                form.click()
+                time.sleep(0.5)
+                
+                # Tab untuk focus ke text area
+                ActionChains(self.driver).send_keys(Keys.TAB).perform()
+                time.sleep(0.5)
+                
+                # Ketik text
+                ActionChains(self.driver).send_keys(text).perform()
+                return True
+                
+        except Exception as e:
+            self._log(f"Strategy 3 error: {str(e)}", "DEBUG")
+            return False
+        
+        return False
+
+    def _strategy_javascript_injection(self, text: str) -> bool:
+        """Strategy 4: JavaScript injection langsung"""
+        try:
             script = """
-            var elements = document.querySelectorAll('div[contenteditable="true"]');
-            for (var i = 0; i < elements.length; i++) {
-                var el = elements[i];
-                if (el.offsetParent !== null) { // visible
-                    el.focus();
-                    el.innerHTML = '<p>' + arguments[0] + '</p>';
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                    return true;
+            // Cari elemen contenteditable yang visible di dalam form
+            var forms = document.querySelectorAll('form');
+            for (var f = 0; f < forms.length; f++) {
+                var editables = forms[f].querySelectorAll('div[contenteditable="true"]');
+                for (var i = 0; i < editables.length; i++) {
+                    var el = editables[i];
+                    if (el.offsetParent !== null && el.offsetHeight > 0) { // visible
+                        el.focus();
+                        el.innerHTML = '<p>' + arguments[0] + '</p>';
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        return true;
+                    }
                 }
             }
             return false;
             """
             
             result = self.driver.execute_script(script, text)
-            if result:
-                self._log(f"✅ Text berhasil diketik dengan JavaScript!", "SUCCESS")
-                time.sleep(1)
-                return True
-                
-        except Exception as e:
-            self._log(f"Strategi 4 gagal: {str(e)}", "DEBUG")
-        
-        # Strategi 5: Simulasi keyboard natural
-        try:
-            self._log("Strategi 5: Simulasi keyboard natural...")
+            return bool(result)
             
-            # Tab untuk focus ke elemen berikutnya (biasanya text area)
-            ActionChains(self.driver).send_keys(Keys.TAB).perform()
+        except Exception as e:
+            self._log(f"Strategy 4 error: {str(e)}", "DEBUG")
+            return False
+
+    def _strategy_tab_and_type(self, text: str) -> bool:
+        """Strategy 5: Simulasi Tab dan ketik"""
+        try:
+            # Klik di body untuk focus
+            body = self.driver.find_element(By.TAG_NAME, "body")
+            body.click()
             time.sleep(0.5)
             
-            # Ketik character by character
-            for char in text:
-                ActionChains(self.driver).send_keys(char).perform()
-                time.sleep(0.05)  # Delay kecil antar karakter
-            
-            time.sleep(1)
-            
-            # Verifikasi
-            page_source = self.driver.page_source
-            if text.lower() in page_source.lower():
-                self._log(f"✅ Text berhasil diketik dengan simulasi natural!", "SUCCESS")
-                return True
+            # Tab beberapa kali untuk mencari text area
+            for i in range(5):
+                ActionChains(self.driver).send_keys(Keys.TAB).perform()
+                time.sleep(0.3)
                 
+                # Coba ketik
+                ActionChains(self.driver).send_keys(text).perform()
+                time.sleep(0.5)
+                
+                # Cek apakah text muncul
+                page_source = self.driver.page_source
+                if text.lower() in page_source.lower():
+                    return True
+                
+                # Hapus text yang mungkin salah tempat
+                ActionChains(self.driver).key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).perform()
+                ActionChains(self.driver).send_keys(Keys.BACKSPACE).perform()
+            
+            return False
+            
         except Exception as e:
-            self._log(f"Strategi 5 gagal: {str(e)}", "DEBUG")
-        
-        self._log("❌ Semua strategi input langsung gagal", "ERROR")
-        return False
+            self._log(f"Strategy 5 error: {str(e)}", "DEBUG")
+            return False
 
     def _input_text_safely(self, element, text: str) -> bool:
         """Input text dengan berbagai metode yang aman - Enhanced untuk Facebook"""
@@ -564,51 +575,11 @@ class FacebookUploader:
                 self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e)
             ),
             
-            # Strategy 7: Lexical Editor specific
+            # Strategy 7: JavaScript dengan data-text attribute (khusus Facebook)
             lambda e, t: (
-                self.driver.execute_script("arguments[0].focus();", e),
-                time.sleep(0.3),
-                self.driver.execute_script("""
-                    var element = arguments[0];
-                    var text = arguments[1];
-                    element.innerHTML = '<p class="xdj266r x14z9mp xat24cr x1lziwak x16tdsg8">' + text + '</p>';
-                    element.dispatchEvent(new Event('input', { bubbles: true }));
-                    element.dispatchEvent(new Event('change', { bubbles: true }));
-                """, e, t)
-            ),
-            
-            # Strategy 8: Direct paragraph manipulation
-            lambda e, t: (
-                self.driver.execute_script("""
-                    var element = arguments[0];
-                    var text = arguments[1];
-                    var p = element.querySelector('p');
-                    if (p) {
-                        p.textContent = text;
-                    } else {
-                        element.innerHTML = '<p>' + text + '</p>';
-                    }
-                    element.dispatchEvent(new Event('input', { bubbles: true }));
-                """, e, t)
-            ),
-            
-            # Strategy 9: Character-by-character typing
-            lambda e, t: (
-                e.click(),
-                time.sleep(0.3),
-                e.clear(),
-                time.sleep(0.2),
-                [ActionChains(self.driver).send_keys(char).perform() or time.sleep(0.05) for char in t]
-            ),
-            
-            # Strategy 10: Clear and type with events
-            lambda e, t: (
-                self.driver.execute_script("arguments[0].focus();", e),
-                self.driver.execute_script("arguments[0].innerHTML = '';", e),
-                time.sleep(0.2),
-                e.send_keys(t),
-                self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e),
-                self.driver.execute_script("arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", e)
+                self.driver.execute_script("arguments[0].setAttribute('data-text', arguments[1]);", e, t),
+                self.driver.execute_script("arguments[0].textContent = arguments[1];", e, t),
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e)
             )
         ]
         
@@ -624,33 +595,15 @@ class FacebookUploader:
                               element.get_attribute('value') or 
                               element.text or "")
                 
-                # Cek text di dalam paragraph (untuk Lexical Editor)
-                try:
-                    p_element = element.find_element(By.TAG_NAME, "p")
-                    p_text = p_element.text or p_element.get_attribute('textContent') or ""
-                    if p_text:
-                        current_text = p_text
-                except:
-                    pass
-                
-                # Screenshot untuk verifikasi visual
-                screenshot_path = self.take_screenshot(f"facebook_text_input_verification_{int(time.time())}.png")
-                
-                # Verifikasi yang lebih ketat
-                if text.lower().strip() in current_text.lower().strip() and len(current_text.strip()) > 0:
-                    self._log(f"✅ Text berhasil dimasukkan dengan strategi #{i}", "SUCCESS")
-                    self._log(f"✅ Text terverifikasi: '{current_text[:50]}...'", "SUCCESS")
+                if text.lower() in current_text.lower() or len(current_text.strip()) > 0:
+                    self._log(f"Text berhasil dimasukkan dengan strategi #{i}", "SUCCESS")
                     return True
-                else:
-                    self._log(f"⚠️ ❌ Strategi #{i} gagal - text tidak terdeteksi", "WARNING")
-                    if self.debug:
-                        self._log(f"Expected: '{text}', Got: '{current_text[:100]}'", "DEBUG")
                     
             except Exception as e:
                 self._log(f"Strategi #{i} gagal: {str(e)}", "DEBUG")
                 continue
         
-        self._log("❌ ❌ Semua strategi input text gagal", "ERROR")
+        self._log("Semua strategi input text gagal", "ERROR")
         return False
 
     def _click_element_with_retry(self, element, description: str = "element") -> bool:
@@ -887,7 +840,7 @@ class FacebookUploader:
             
             self._log(f"MODE: {mode}")
             
-            # Step 1: Klik area "What's on your mind" untuk membuka composer
+            # Step 1: Klik area "What's on your mind" untuk membuka composer SEKALI SAJA
             self._log("Mencari area 'What's on your mind' untuk membuka composer...")
             
             trigger_element = self._find_element_by_xpath_list(self.selectors['status_trigger_xpath'])
@@ -910,8 +863,6 @@ class FacebookUploader:
                 self._log("Mencoba upload media langsung setelah composer terbuka...")
                 
                 if self._upload_media_direct(media_path):
-                    self._log("Media berhasil diupload!", "SUCCESS")
-                    
                     # Verifikasi media upload
                     if self._verify_media_upload():
                         self._log("✅ ✅ Media upload berhasil diverifikasi!", "SUCCESS")
@@ -923,13 +874,13 @@ class FacebookUploader:
                 else:
                     self._log("Media upload gagal, melanjutkan tanpa media...", "WARNING")
             
-            # Step 3: Input text
+            # Step 3: Input text - PENTING: JANGAN BUAT COMPOSER BARU!
             if status_text:
                 if media_uploaded:
-                    # Jika media sudah diupload, langsung ketik tanpa mencari elemen baru
-                    self._log("🎯 Media sudah ter-upload, langsung mengetik text...")
+                    # 🎯 JIKA MEDIA SUDAH DIUPLOAD, KETIK DI COMPOSER YANG SAMA!
+                    self._log("🎯 Media sudah ter-upload, mengetik text di composer yang sama...")
                     
-                    if not self._input_text_directly_after_media(status_text):
+                    if not self._input_text_in_same_composer(status_text):
                         # Fallback: cari elemen text area setelah media upload
                         self._log("Fallback: Mencari area text input setelah media upload...")
                         text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area_after_media'])
@@ -942,14 +893,7 @@ class FacebookUploader:
                 else:
                     # Jika tidak ada media, gunakan selector biasa
                     self._log("Mencari area text input di composer...")
-                    
-                    # Coba CSS selector terlebih dahulu
-                    text_element = self._find_element_by_css_list(self.selectors['composer_text_area_css'])
-                    
-                    if not text_element:
-                        # Fallback ke XPath
-                        self._log("CSS selector gagal, mencoba XPath...")
-                        text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area'])
+                    text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area'])
                     
                     if not text_element:
                         raise NoSuchElementException("Text area di composer tidak ditemukan")
