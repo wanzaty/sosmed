@@ -365,75 +365,115 @@ class FacebookUploader:
         return None
 
     def _input_text_safely(self, element, text: str) -> bool:
-        """Input text dengan berbagai metode yang aman - Enhanced untuk Facebook"""
+        """Input text dengan berbagai metode yang aman - Enhanced untuk Facebook dengan visibility check"""
         self._log(f"Memasukkan text: {text[:50]}...")
         
         strategies = [
-            # Strategy 1: Click + clear + send_keys
-            lambda e, t: (e.click(), time.sleep(0.5), e.clear(), e.send_keys(t)),
+            # Strategy 1: Focus + clear + type naturally
+            lambda e, t: (
+                self.driver.execute_script("arguments[0].focus();", e),
+                time.sleep(0.5),
+                e.clear(),
+                time.sleep(0.3),
+                e.send_keys(t),
+                time.sleep(0.5)
+            ),
             
-            # Strategy 2: Focus + select all + type
+            # Strategy 2: Click + select all + type
             lambda e, t: (
                 e.click(),
                 time.sleep(0.5),
                 e.send_keys(Keys.CONTROL + "a"),
                 time.sleep(0.2),
-                e.send_keys(t)
+                e.send_keys(t),
+                time.sleep(0.5)
             ),
             
-            # Strategy 3: ActionChains click + type
+            # Strategy 3: ActionChains dengan focus
             lambda e, t: (
                 ActionChains(self.driver).move_to_element(e).click().perform(),
                 time.sleep(0.5),
                 ActionChains(self.driver).send_keys(Keys.CONTROL + "a").perform(),
                 time.sleep(0.2),
-                ActionChains(self.driver).send_keys(t).perform()
+                ActionChains(self.driver).send_keys(t).perform(),
+                time.sleep(0.5)
             ),
             
-            # Strategy 4: JavaScript innerHTML
-            lambda e, t: self.driver.execute_script("arguments[0].innerHTML = arguments[1];", e, t),
-            
-            # Strategy 5: JavaScript textContent
-            lambda e, t: self.driver.execute_script("arguments[0].textContent = arguments[1];", e, t),
-            
-            # Strategy 6: JavaScript focus + value (untuk input elements)
+            # Strategy 4: JavaScript dengan proper events
             lambda e, t: (
                 self.driver.execute_script("arguments[0].focus();", e),
                 time.sleep(0.3),
-                self.driver.execute_script("arguments[0].value = arguments[1];", e, t),
-                self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e)
-            ),
-            
-            # Strategy 7: JavaScript dengan data-text attribute (khusus Facebook)
-            lambda e, t: (
-                self.driver.execute_script("arguments[0].setAttribute('data-text', arguments[1]);", e, t),
-                self.driver.execute_script("arguments[0].textContent = arguments[1];", e, t),
-                self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e)
-            ),
-            
-            # Strategy 8: Direct typing dengan focus
-            lambda e, t: (
-                self.driver.execute_script("arguments[0].focus();", e),
-                time.sleep(0.3),
-                e.send_keys(t)
-            ),
-            
-            # Strategy 9: JavaScript dengan innerText
-            lambda e, t: (
-                self.driver.execute_script("arguments[0].focus();", e),
+                self.driver.execute_script("arguments[0].innerHTML = '';", e),
                 time.sleep(0.2),
-                self.driver.execute_script("arguments[0].innerText = arguments[1];", e, t),
-                self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e)
+                self.driver.execute_script("arguments[0].innerHTML = arguments[1];", e, t),
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e),
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", e),
+                time.sleep(0.5)
             ),
             
-            # Strategy 10: Simulate typing character by character
+            # Strategy 5: JavaScript textContent dengan events
+            lambda e, t: (
+                self.driver.execute_script("arguments[0].focus();", e),
+                time.sleep(0.3),
+                self.driver.execute_script("arguments[0].textContent = '';", e),
+                time.sleep(0.2),
+                self.driver.execute_script("arguments[0].textContent = arguments[1];", e, t),
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e),
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", e),
+                time.sleep(0.5)
+            ),
+            
+            # Strategy 6: Character by character typing
             lambda e, t: (
                 e.click(),
-                time.sleep(0.3),
+                time.sleep(0.5),
                 e.clear(),
-                time.sleep(0.2),
-                [e.send_keys(char) for char in t],
-                time.sleep(0.1)
+                time.sleep(0.3),
+                [e.send_keys(char) and time.sleep(0.05) for char in t],
+                time.sleep(0.5)
+            ),
+            
+            # Strategy 7: JavaScript dengan innerText dan focus events
+            lambda e, t: (
+                self.driver.execute_script("arguments[0].focus();", e),
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('focus', { bubbles: true }));", e),
+                time.sleep(0.3),
+                self.driver.execute_script("arguments[0].innerText = arguments[1];", e, t),
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e),
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('keyup', { bubbles: true }));", e),
+                time.sleep(0.5)
+            ),
+            
+            # Strategy 8: Simulate real user typing with delays
+            lambda e, t: (
+                ActionChains(self.driver).move_to_element(e).click().perform(),
+                time.sleep(0.5),
+                ActionChains(self.driver).key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).perform(),
+                time.sleep(0.3),
+                ActionChains(self.driver).send_keys(t).perform(),
+                time.sleep(0.5)
+            ),
+            
+            # Strategy 9: JavaScript dengan data attributes
+            lambda e, t: (
+                self.driver.execute_script("arguments[0].focus();", e),
+                time.sleep(0.3),
+                self.driver.execute_script("arguments[0].setAttribute('data-text', arguments[1]);", e, t),
+                self.driver.execute_script("arguments[0].textContent = arguments[1];", e, t),
+                self.driver.execute_script("arguments[0].value = arguments[1];", e, t),
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e),
+                time.sleep(0.5)
+            ),
+            
+            # Strategy 10: Force visibility and type
+            lambda e, t: (
+                self.driver.execute_script("arguments[0].style.display = 'block';", e),
+                self.driver.execute_script("arguments[0].style.visibility = 'visible';", e),
+                self.driver.execute_script("arguments[0].focus();", e),
+                time.sleep(0.5),
+                e.clear(),
+                e.send_keys(t),
+                time.sleep(0.5)
             )
         ]
         
@@ -442,16 +482,27 @@ class FacebookUploader:
                 self._log(f"Mencoba strategi input #{i}...")
                 strategy(element, text)
                 
-                # Verifikasi apakah text berhasil dimasukkan
+                # Enhanced verification - cek multiple attributes
                 time.sleep(1)
                 current_text = (element.get_attribute('textContent') or 
                               element.get_attribute('innerHTML') or 
-                              element.get_attribute('value') or 
+                              element.get_attribute('value') or
                               element.get_attribute('innerText') or
                               element.text or "")
                 
-                if text.lower() in current_text.lower() or len(current_text.strip()) > 0:
+                # Cek juga apakah text terlihat di UI
+                visible_text = self.driver.execute_script("return arguments[0].textContent || arguments[0].innerText || '';", element)
+                
+                if (text.lower() in current_text.lower() or 
+                    text.lower() in visible_text.lower() or 
+                    len(current_text.strip()) > 0 or 
+                    len(visible_text.strip()) > 0):
+                    
                     self._log(f"Text berhasil dimasukkan dengan strategi #{i}", "SUCCESS")
+                    self._log(f"Text terdeteksi: '{visible_text[:50]}...'", "DEBUG")
+                    
+                    # Take screenshot untuk verifikasi visual
+                    self.take_screenshot(f"facebook_text_input_success_{int(time.time())}.png")
                     return True
                     
             except Exception as e:
@@ -723,7 +774,7 @@ class FacebookUploader:
                 else:
                     self._log("Media upload gagal, melanjutkan tanpa media...", "WARNING")
             
-            # Step 3: Input text jika ada
+            # Step 3: Input text jika ada - ENHANCED VERSION
             if status_text:
                 self._log("Mencari area text input di composer...")
                 
@@ -746,11 +797,14 @@ class FacebookUploader:
                 if not text_element:
                     raise NoSuchElementException("Text area di composer tidak ditemukan")
                 
-                # Input text dengan metode yang aman
+                # Input text dengan metode yang aman dan enhanced verification
                 if not self._input_text_safely(text_element, status_text):
                     raise Exception("Gagal memasukkan text ke composer")
                 
+                # Additional verification - tunggu sebentar dan cek lagi
                 time.sleep(2)
+                final_text = self.driver.execute_script("return arguments[0].textContent || arguments[0].innerText || '';", text_element)
+                self._log(f"Final text verification: '{final_text[:50]}...'", "DEBUG")
             
             # Step 4: Klik tombol Post
             self._log("Mencari tombol Post di composer...")
