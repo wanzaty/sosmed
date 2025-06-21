@@ -81,20 +81,22 @@ class FacebookUploader:
                 "//div[contains(@class, 'notranslate') and @contenteditable='true']"
             ],
             
-            # CSS Selector spesifik untuk text area SETELAH media diupload
-            'composer_text_area_after_media_css': [
-                # CSS Selector yang diberikan user - paling spesifik
-                "#mount_0_0_zr > div > div:nth-child(1) > div > div:nth-child(5) > div > div.__fb-light-mode.x1n2onr6.xzkaem6 > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.x1ed109x.x1iyjqo2.x5yr21d.x1n2onr6.xh8yej3 > div.x9f619.x1iyjqo2.xg7h5cd.xf7dkkf.x1n2onr6.xh8yej3.x1ja2u2z.xjfo4ez > div > div > div:nth-child(2) > div",
+            # CSS Selector berdasarkan DOM yang terlihat di screenshot
+            'composer_text_area_css': [
+                # Berdasarkan DOM screenshot - area text di atas video
+                "div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate[contenteditable='true']",
                 
-                # Fallback CSS selectors yang lebih umum
+                # Selector yang lebih spesifik berdasarkan class yang terlihat
+                "div.notranslate[contenteditable='true'][role='textbox']",
+                
+                # Fallback berdasarkan struktur yang terlihat
+                "div[contenteditable='true'][data-lexical-editor='true']",
+                "div[contenteditable='true'][aria-placeholder*='What']",
+                "div[contenteditable='true'][tabindex='0']",
+                
+                # Generic fallbacks
                 "div[contenteditable='true'][role='textbox']",
-                "div[contenteditable='true'][data-text]",
-                "div[contenteditable='true']",
-                
-                # Berdasarkan class patterns yang terlihat
-                "div.x1ed109x div[contenteditable='true']",
-                "div.x9f619 div[contenteditable='true']",
-                "form div[contenteditable='true']"
+                "div[contenteditable='true']"
             ],
             
             # XPath untuk text area SETELAH media diupload - berdasarkan screenshot
@@ -727,18 +729,19 @@ class FacebookUploader:
                 
                 text_element = None
                 
-                # Jika ada media, coba CSS selector spesifik terlebih dahulu
-                if media_path and os.path.exists(media_path):
-                    self._log("Mencoba CSS selector spesifik untuk text area setelah media upload...")
-                    text_element = self._find_element_by_css_list(self.selectors['composer_text_area_after_media_css'])
-                    
-                    # Jika CSS gagal, coba XPath
-                    if not text_element:
-                        self._log("CSS selector gagal, mencoba XPath selector...")
+                # Coba CSS selector terlebih dahulu (berdasarkan DOM screenshot)
+                self._log("Mencoba CSS selector berdasarkan DOM structure...")
+                text_element = self._find_element_by_css_list(self.selectors['composer_text_area_css'])
+                
+                # Jika CSS gagal, coba XPath
+                if not text_element:
+                    self._log("CSS selector gagal, mencoba XPath selector...")
+                    if media_path and os.path.exists(media_path):
+                        # Jika ada media, gunakan selector khusus untuk setelah media upload
                         text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area_after_media'])
-                else:
-                    # Jika tidak ada media, gunakan selector biasa
-                    text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area'])
+                    else:
+                        # Jika tidak ada media, gunakan selector biasa
+                        text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area'])
                 
                 if not text_element:
                     raise NoSuchElementException("Text area di composer tidak ditemukan")
