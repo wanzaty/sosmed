@@ -60,34 +60,33 @@ class FacebookUploader:
         self.base_url = "https://www.facebook.com"
         self.reels_url = "https://www.facebook.com/reels/create/?surface=PROFILE_PLUS"
         
-        # XPath Selectors yang VALID - berdasarkan yang Anda berikan
+        # XPath Selectors yang VALID - berdasarkan screenshot yang benar
         self.selectors = {
             # XPath untuk area "What's on your mind" yang benar
             'status_trigger_xpath': [
-                # XPath berdasarkan text content
+                # Berdasarkan screenshot - area yang tepat
                 "//span[contains(text(), \"What's on your mind\")]",
-                "//span[contains(text(), \"What's on your mind\")]/ancestor::div[@role='button']",
                 "//div[@role='button']//span[contains(text(), \"What's on your mind\")]",
-                # Fallback XPath
-                "//div[@data-pagelet='FeedUnit_0']//div[@role='button']",
-                "//div[contains(@aria-label, 'Create a post')]//div[@role='button']"
+                "//div[contains(@aria-label, 'Create a post')]",
+                "//div[@data-pagelet='FeedUnit_0']//div[@role='button']"
             ],
             
-            # XPath untuk text input (TEXT ONLY)
-            'text_input_only_xpath': [
-                "//span[contains(text(), \"What's on your mind\") and contains(@style, '-webkit-box-orient:vertical')]"
+            # XPath untuk text area di dalam composer yang sudah terbuka
+            'composer_text_area': [
+                # Area text yang benar di dalam composer
+                "//div[@contenteditable='true' and @role='textbox']",
+                "//div[@contenteditable='true' and contains(@aria-placeholder, \"What's on your mind\")]",
+                "//div[@data-lexical-editor='true']",
+                "//div[@contenteditable='true']//p",
+                "//div[contains(@class, 'notranslate') and @contenteditable='true']"
             ],
             
-            # XPath untuk text input (TEXT + MEDIA)
-            'text_input_media_xpath': [
-                "//div[@contenteditable='true' and @role='textbox' and contains(@aria-placeholder, \"What's on your mind\")]"
-            ],
-            
-            # XPath untuk tombol Post
-            'post_button_xpath': [
+            # XPath untuk tombol Post di composer
+            'post_button_composer': [
                 "//div[@aria-label='Post' and @role='button']",
                 "//div[@role='button']//span[text()='Post']",
-                "//button//span[text()='Post']"
+                "//button//span[text()='Post']",
+                "//div[contains(@class, 'x1i10hfl')]//span[text()='Post']"
             ],
             
             # XPath untuk upload media
@@ -260,6 +259,80 @@ class FacebookUploader:
         self._log("Semua XPath selector gagal", "WARNING")
         return None
 
+    def _find_text_element_by_xpath_list(self, xpath_list: list, timeout: int = 10) -> Optional[Any]:
+        """Mencari text element yang bisa menerima input"""
+        for i, xpath in enumerate(xpath_list):
+            try:
+                element = WebDriverWait(self.driver, timeout).until(
+                    EC.presence_of_element_located((By.XPATH, xpath))
+                )
+                
+                # Cek apakah element bisa menerima input
+                if element.is_displayed() and element.is_enabled():
+                    # Cek apakah contenteditable
+                    if element.get_attribute('contenteditable') == 'true':
+                        self._log(f"Text element ditemukan dengan XPath #{i+1}", "SUCCESS")
+                        return element
+                    
+            except TimeoutException:
+                continue
+        
+        self._log("Semua text XPath selector gagal", "WARNING")
+        return None
+
+    def _input_text_safely(self, element, text: str) -> bool:
+        """Input text dengan berbagai metode yang aman"""
+        self._log(f"Memasukkan text: {text[:50]}...")
+        
+        strategies = [
+            # Strategy 1: Click + clear + send_keys
+            lambda e, t: (e.click(), time.sleep(0.5), e.clear(), e.send_keys(t)),
+            
+            # Strategy 2: JavaScript innerHTML
+            lambda e, t: self.driver.execute_script("arguments[0].innerHTML = arguments[1];", e, t),
+            
+            # Strategy 3: JavaScript textContent
+            lambda e, t: self.driver.execute_script("arguments[0].textContent = arguments[1];", e, t),
+            
+            # Strategy 4: Focus + select all + type
+            lambda e, t: (
+                e.click(),
+                time.sleep(0.5),
+                e.send_keys(Keys.CONTROL + "a"),
+                time.sleep(0.2),
+                e.send_keys(t)
+            ),
+            
+            # Strategy 5: ActionChains
+            lambda e, t: (
+                ActionChains(self.driver).move_to_element(e).click().perform(),
+                time.sleep(0.5),
+                ActionChains(self.driver).send_keys(Keys.CONTROL + "a").perform(),
+                time.sleep(0.2),
+                ActionChains(self.driver).send_keys(t).perform()
+            )
+        ]
+        
+        for i, strategy in enumerate(strategies, 1):
+            try:
+                self._log(f"Mencoba strategi input #{i}...")
+                strategy(element, text)
+                
+                # Verifikasi apakah text berhasil dimasukkan
+                time.sleep(1)
+                current_text = element.get_attribute('textContent') or element.get_attribute('innerHTML') or element.text
+                
+                if text.lower() in current_text.lower():
+                    self._log(f"Text berhasil dimasukkan dengan strategi #{i}", "SUCCESS")
+                    return True
+                    
+            except Exception as e:
+                self._log(f"Strategi #{i} gagal: {str(e)}", "DEBUG")
+                continue
+        
+        self._log("Semua strategi input text gagal", "ERROR")
+        return False
+
     def _click_element_with_retry(self, element, description: str = "element") -> bool:
         """Click element dengan multiple strategies dan retry"""
         self._log(f"Mengklik '{description}'...")
@@ -420,7 +493,7 @@ class FacebookUploader:
 
     def upload_status(self, status_text: str = "", media_path: str = "") -> Dict[str, Any]:
         """
-        Upload status ke Facebook dengan XPath selector yang valid
+        Upload status ke Facebook dengan pendekatan yang lebih robust
         
         Args:
             status_text: Text status
@@ -468,87 +541,89 @@ class FacebookUploader:
             
             self._log(f"MODE: {mode}")
             
-            # Step 1: Klik area "What's on your mind" yang BENAR
-            self._log("Mencari area 'What's on your mind' yang benar...")
+            # Step 1: Klik area "What's on your mind" untuk membuka composer
+            self._log("Mencari area 'What's on your mind' untuk membuka composer...")
             
             trigger_element = self._find_element_by_xpath_list(self.selectors['status_trigger_xpath'])
             
             if not trigger_element:
                 raise NoSuchElementException("Area 'What's on your mind' tidak ditemukan")
             
-            # Klik area trigger
+            # Klik area trigger untuk membuka composer
             if not self._click_element_with_retry(trigger_element, "Area What's on your mind"):
                 raise Exception("Gagal mengklik area 'What's on your mind'")
             
             time.sleep(3)  # Wait for composer to open
             
-            # Step 2: Handle berdasarkan mode
-            if mode == "TEXT ONLY":
-                # Untuk TEXT ONLY, gunakan selector khusus
-                self._log("Mode TEXT ONLY - mencari input text...")
-                
-                text_element = self._find_element_by_xpath_list(self.selectors['text_input_only_xpath'])
-                if not text_element:
-                    raise NoSuchElementException("Text input element (TEXT ONLY) tidak ditemukan")
-                
-                # Klik dan input text
-                if self._click_element_with_retry(text_element, "Text Input Area"):
-                    time.sleep(1)
-                    # Clear existing text dan input yang baru
-                    text_element.clear()
-                    text_element.send_keys(status_text)
-                    self._log("Text berhasil dimasukkan", "SUCCESS")
-                    time.sleep(1)
-                else:
-                    raise Exception("Gagal mengklik text input area")
+            # Take screenshot after composer opens
+            self.take_screenshot(f"facebook_composer_opened_{int(time.time())}.png")
             
-            elif mode in ["TEXT + MEDIA", "MEDIA ONLY"]:
-                # Step 2a: Upload media jika ada
-                if media_path and os.path.exists(media_path):
-                    self._log(f"Mengupload media: {os.path.basename(media_path)}")
-                    
-                    try:
-                        # Cari input file
-                        file_input = self._find_element_by_xpath_list(self.selectors['media_input_xpath'])
-                        if file_input:
-                            abs_path = os.path.abspath(media_path)
-                            file_input.send_keys(abs_path)
-                            self._log("Media berhasil diupload", "SUCCESS")
-                            time.sleep(3)
+            # Step 2: Handle media upload jika ada
+            if media_path and os.path.exists(media_path):
+                self._log(f"Mengupload media: {os.path.basename(media_path)}")
+                
+                try:
+                    # Cari input file
+                    file_input = self._find_element_by_xpath_list(self.selectors['media_input_xpath'])
+                    if file_input:
+                        abs_path = os.path.abspath(media_path)
+                        file_input.send_keys(abs_path)
+                        self._log("Media berhasil diupload", "SUCCESS")
+                        time.sleep(3)
+                    else:
+                        # Jika tidak ada input file, coba cari tombol media
+                        media_buttons = self.driver.find_elements(By.XPATH, "//div[@aria-label='Photo/video']")
+                        if media_buttons:
+                            media_buttons[0].click()
+                            time.sleep(2)
+                            # Cari input file lagi setelah klik tombol
+                            file_input = self._find_element_by_xpath_list(self.selectors['media_input_xpath'])
+                            if file_input:
+                                abs_path = os.path.abspath(media_path)
+                                file_input.send_keys(abs_path)
+                                self._log("Media berhasil diupload", "SUCCESS")
+                                time.sleep(3)
+                            else:
+                                raise Exception("Input file tidak ditemukan setelah klik tombol media")
                         else:
-                            raise Exception("Input file tidak ditemukan")
-                    except Exception as e:
-                        raise Exception(f"Gagal mengupload media: {str(e)}")
-                
-                # Step 2b: Input text jika ada (untuk TEXT + MEDIA)
-                if status_text:
-                    self._log(f"Memasukkan text: {status_text[:50]}...")
-                    
-                    text_element = self._find_element_by_xpath_list(self.selectors['text_input_media_xpath'])
-                    if not text_element:
-                        raise NoSuchElementException("Text input element (TEXT + MEDIA) tidak ditemukan")
-                    
-                    # Klik dan input text
-                    text_element.click()
-                    time.sleep(1)
-                    text_element.clear()
-                    text_element.send_keys(status_text)
-                    self._log("Text berhasil dimasukkan", "SUCCESS")
-                    time.sleep(1)
+                            raise Exception("Tombol media dan input file tidak ditemukan")
+                except Exception as e:
+                    self._log(f"Gagal mengupload media: {str(e)}", "WARNING")
+                    # Lanjutkan tanpa media jika gagal
             
-            # Step 3: Klik tombol post
-            self._log("Mencari tombol post...")
-            post_element = self._find_element_by_xpath_list(self.selectors['post_button_xpath'])
+            # Step 3: Input text jika ada
+            if status_text:
+                self._log("Mencari area text input di composer...")
+                
+                # Cari text area di composer yang sudah terbuka
+                text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area'])
+                
+                if not text_element:
+                    raise NoSuchElementException("Text area di composer tidak ditemukan")
+                
+                # Input text dengan metode yang aman
+                if not self._input_text_safely(text_element, status_text):
+                    raise Exception("Gagal memasukkan text ke composer")
+                
+                time.sleep(2)
+            
+            # Step 4: Klik tombol Post
+            self._log("Mencari tombol Post di composer...")
+            
+            post_element = self._find_element_by_xpath_list(self.selectors['post_button_composer'])
             if not post_element:
-                raise NoSuchElementException("Tombol post tidak ditemukan")
+                raise NoSuchElementException("Tombol Post tidak ditemukan")
             
             if self._click_element_with_retry(post_element, "Post Button"):
                 self._log("Post berhasil diklik", "SUCCESS")
                 time.sleep(5)
                 
+                # Take screenshot after post
+                self.take_screenshot(f"facebook_after_post_{int(time.time())}.png")
+                
                 # Cek apakah kembali ke feed (indikasi sukses)
                 current_url = self.driver.current_url
-                if self.base_url in current_url:
+                if self.base_url in current_url and "composer" not in current_url:
                     self._log("Status berhasil dipost ke Facebook!", "SUCCESS")
                     return {
                         "success": True,
@@ -566,7 +641,7 @@ class FacebookUploader:
                         "mode": mode
                     }
             else:
-                raise Exception("Gagal mengklik tombol post")
+                raise Exception("Gagal mengklik tombol Post")
                 
         except Exception as e:
             error_msg = f"Facebook status upload gagal: {str(e)}"
