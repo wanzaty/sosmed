@@ -84,9 +84,9 @@ class FacebookUploader:
             # XPath untuk text area SETELAH media diupload - berdasarkan screenshot
             'composer_text_area_after_media': [
                 # Berdasarkan screenshot: area text di atas video dengan placeholder "What's on your mind, Kurniawan?"
-                "//div[@contenteditable='true' and contains(@data-text, \"What's on your mind\")]",
+                "//div[@contenteditable='true' and contains(@data-text, 'What')]",
                 "//div[@contenteditable='true' and @data-text]",
-                "//div[@contenteditable='true' and contains(@aria-label, 'What\\'s on your mind')]",
+                "//div[@contenteditable='true' and contains(@aria-placeholder, 'What')]",
                 "//div[@contenteditable='true' and @role='textbox' and @data-text]",
                 # Selector berdasarkan posisi di atas media
                 "//div[contains(@class, 'x1ed109x')]//div[@contenteditable='true']",
@@ -372,6 +372,13 @@ class FacebookUploader:
                 self.driver.execute_script("arguments[0].setAttribute('data-text', arguments[1]);", e, t),
                 self.driver.execute_script("arguments[0].textContent = arguments[1];", e, t),
                 self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e)
+            ),
+            
+            # Strategy 8: Direct typing dengan focus
+            lambda e, t: (
+                self.driver.execute_script("arguments[0].focus();", e),
+                time.sleep(0.3),
+                e.send_keys(t)
             )
         ]
         
