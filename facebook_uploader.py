@@ -73,12 +73,27 @@ class FacebookUploader:
             
             # XPath untuk text area di dalam composer yang sudah terbuka
             'composer_text_area': [
-                # Area text yang benar di dalam composer
+                # Area text yang benar di dalam composer - SEBELUM media upload
                 "//div[@contenteditable='true' and @role='textbox']",
                 "//div[@contenteditable='true' and contains(@aria-placeholder, \"What's on your mind\")]",
                 "//div[@data-lexical-editor='true']",
                 "//div[@contenteditable='true']//p",
                 "//div[contains(@class, 'notranslate') and @contenteditable='true']"
+            ],
+            
+            # XPath untuk text area SETELAH media diupload - berdasarkan screenshot
+            'composer_text_area_after_media': [
+                # Berdasarkan screenshot: area text di atas video dengan placeholder "What's on your mind, Kurniawan?"
+                "//div[@contenteditable='true' and contains(@data-text, \"What's on your mind\")]",
+                "//div[@contenteditable='true' and @data-text]",
+                "//div[@contenteditable='true' and contains(@aria-label, 'What\\'s on your mind')]",
+                "//div[@contenteditable='true' and @role='textbox' and @data-text]",
+                # Selector berdasarkan posisi di atas media
+                "//div[contains(@class, 'x1ed109x')]//div[@contenteditable='true']",
+                "//div[contains(@class, 'x1swvt13')]//div[@contenteditable='true']",
+                # Fallback umum
+                "//div[@contenteditable='true' and @role='textbox']",
+                "//div[@contenteditable='true']"
             ],
             
             # XPath untuk tombol Post di composer
@@ -313,20 +328,14 @@ class FacebookUploader:
         return None
 
     def _input_text_safely(self, element, text: str) -> bool:
-        """Input text dengan berbagai metode yang aman"""
+        """Input text dengan berbagai metode yang aman - Enhanced untuk Facebook"""
         self._log(f"Memasukkan text: {text[:50]}...")
         
         strategies = [
             # Strategy 1: Click + clear + send_keys
             lambda e, t: (e.click(), time.sleep(0.5), e.clear(), e.send_keys(t)),
             
-            # Strategy 2: JavaScript innerHTML
-            lambda e, t: self.driver.execute_script("arguments[0].innerHTML = arguments[1];", e, t),
-            
-            # Strategy 3: JavaScript textContent
-            lambda e, t: self.driver.execute_script("arguments[0].textContent = arguments[1];", e, t),
-            
-            # Strategy 4: Focus + select all + type
+            # Strategy 2: Focus + select all + type
             lambda e, t: (
                 e.click(),
                 time.sleep(0.5),
@@ -335,13 +344,34 @@ class FacebookUploader:
                 e.send_keys(t)
             ),
             
-            # Strategy 5: ActionChains
+            # Strategy 3: ActionChains click + type
             lambda e, t: (
                 ActionChains(self.driver).move_to_element(e).click().perform(),
                 time.sleep(0.5),
                 ActionChains(self.driver).send_keys(Keys.CONTROL + "a").perform(),
                 time.sleep(0.2),
                 ActionChains(self.driver).send_keys(t).perform()
+            ),
+            
+            # Strategy 4: JavaScript innerHTML
+            lambda e, t: self.driver.execute_script("arguments[0].innerHTML = arguments[1];", e, t),
+            
+            # Strategy 5: JavaScript textContent
+            lambda e, t: self.driver.execute_script("arguments[0].textContent = arguments[1];", e, t),
+            
+            # Strategy 6: JavaScript focus + value (untuk input elements)
+            lambda e, t: (
+                self.driver.execute_script("arguments[0].focus();", e),
+                time.sleep(0.3),
+                self.driver.execute_script("arguments[0].value = arguments[1];", e, t),
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e)
+            ),
+            
+            # Strategy 7: JavaScript dengan data-text attribute (khusus Facebook)
+            lambda e, t: (
+                self.driver.execute_script("arguments[0].setAttribute('data-text', arguments[1]);", e, t),
+                self.driver.execute_script("arguments[0].textContent = arguments[1];", e, t),
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e)
             )
         ]
         
@@ -352,9 +382,12 @@ class FacebookUploader:
                 
                 # Verifikasi apakah text berhasil dimasukkan
                 time.sleep(1)
-                current_text = element.get_attribute('textContent') or element.get_attribute('innerHTML') or element.text
+                current_text = (element.get_attribute('textContent') or 
+                              element.get_attribute('innerHTML') or 
+                              element.get_attribute('value') or 
+                              element.text or "")
                 
-                if text.lower() in current_text.lower():
+                if text.lower() in current_text.lower() or len(current_text.strip()) > 0:
                     self._log(f"Text berhasil dimasukkan dengan strategi #{i}", "SUCCESS")
                     return True
                     
@@ -631,8 +664,13 @@ class FacebookUploader:
             if status_text:
                 self._log("Mencari area text input di composer...")
                 
-                # Cari text area di composer yang sudah terbuka
-                text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area'])
+                # Pilih selector yang tepat berdasarkan apakah ada media atau tidak
+                if media_path and os.path.exists(media_path):
+                    # Jika ada media, gunakan selector khusus untuk setelah media upload
+                    text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area_after_media'])
+                else:
+                    # Jika tidak ada media, gunakan selector biasa
+                    text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area'])
                 
                 if not text_element:
                     raise NoSuchElementException("Text area di composer tidak ditemukan")
