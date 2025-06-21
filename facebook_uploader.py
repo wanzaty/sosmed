@@ -89,10 +89,21 @@ class FacebookUploader:
                 "//div[contains(@class, 'x1i10hfl')]//span[text()='Post']"
             ],
             
-            # XPath untuk upload media
+            # XPath untuk tombol media di composer (Photo/Video)
+            'media_button_xpath': [
+                "//div[@aria-label='Photo/video' and @role='button']",
+                "//div[@role='button']//span[contains(text(), 'Photo')]",
+                "//div[@role='button']//span[contains(text(), 'Video')]",
+                "//div[contains(@aria-label, 'Add to your post')]//div[@aria-label='Photo/video']",
+                "//div[contains(@class, 'x1i10hfl')]//div[@aria-label='Photo/video']"
+            ],
+            
+            # XPath untuk input file setelah klik tombol media
             'media_input_xpath': [
                 "//input[@type='file' and contains(@accept, 'image')]",
                 "//input[@type='file' and contains(@accept, 'video')]",
+                "//input[@type='file' and contains(@accept, '.jpg')]",
+                "//input[@type='file' and contains(@accept, '.mp4')]",
                 "//input[@type='file']"
             ]
         }
@@ -360,6 +371,62 @@ class FacebookUploader:
         self._log(f"Semua strategi klik gagal untuk '{description}'", "ERROR")
         return False
 
+    def _upload_media_to_composer(self, media_path: str) -> bool:
+        """Upload media ke composer Facebook dengan pendekatan yang lebih robust"""
+        self._log(f"Mengupload media: {os.path.basename(media_path)}")
+        
+        try:
+            # Step 1: Cari tombol Photo/Video di composer
+            self._log("Mencari tombol Photo/Video di composer...")
+            
+            media_button = self._find_element_by_xpath_list(self.selectors['media_button_xpath'], timeout=5)
+            
+            if media_button:
+                self._log("Tombol Photo/Video ditemukan, mengklik...")
+                if not self._click_element_with_retry(media_button, "Photo/Video Button"):
+                    raise Exception("Gagal mengklik tombol Photo/Video")
+                
+                time.sleep(3)  # Wait for file dialog
+                
+                # Step 2: Cari input file setelah klik tombol
+                self._log("Mencari input file setelah klik tombol...")
+                
+                file_input = self._find_element_by_xpath_list(self.selectors['media_input_xpath'], timeout=10)
+                
+                if file_input:
+                    abs_path = os.path.abspath(media_path)
+                    self._log(f"Mengirim file: {abs_path}")
+                    file_input.send_keys(abs_path)
+                    self._log("Media berhasil diupload!", "SUCCESS")
+                    time.sleep(5)  # Wait for upload to process
+                    return True
+                else:
+                    raise Exception("Input file tidak ditemukan setelah klik tombol")
+            
+            else:
+                # Fallback: Cari input file langsung (mungkin sudah ada)
+                self._log("Tombol Photo/Video tidak ditemukan, mencari input file langsung...")
+                
+                file_input = self._find_element_by_xpath_list(self.selectors['media_input_xpath'], timeout=5)
+                
+                if file_input:
+                    abs_path = os.path.abspath(media_path)
+                    self._log(f"Mengirim file langsung: {abs_path}")
+                    file_input.send_keys(abs_path)
+                    self._log("Media berhasil diupload (langsung)!", "SUCCESS")
+                    time.sleep(5)
+                    return True
+                else:
+                    raise Exception("Input file tidak ditemukan sama sekali")
+        
+        except Exception as e:
+            self._log(f"Gagal mengupload media: {str(e)}", "ERROR")
+            
+            # Take screenshot untuk debugging
+            self.take_screenshot(f"facebook_media_error_{int(time.time())}.png")
+            
+            return False
+
     def load_cookies(self) -> bool:
         """Load cookies dari file JSON"""
         if not self.cookies_path.exists():
@@ -558,38 +625,10 @@ class FacebookUploader:
             # Take screenshot after composer opens
             self.take_screenshot(f"facebook_composer_opened_{int(time.time())}.png")
             
-            # Step 2: Handle media upload jika ada
+            # Step 2: Handle media upload jika ada (SEBELUM text input)
             if media_path and os.path.exists(media_path):
-                self._log(f"Mengupload media: {os.path.basename(media_path)}")
-                
-                try:
-                    # Cari input file
-                    file_input = self._find_element_by_xpath_list(self.selectors['media_input_xpath'])
-                    if file_input:
-                        abs_path = os.path.abspath(media_path)
-                        file_input.send_keys(abs_path)
-                        self._log("Media berhasil diupload", "SUCCESS")
-                        time.sleep(3)
-                    else:
-                        # Jika tidak ada input file, coba cari tombol media
-                        media_buttons = self.driver.find_elements(By.XPATH, "//div[@aria-label='Photo/video']")
-                        if media_buttons:
-                            media_buttons[0].click()
-                            time.sleep(2)
-                            # Cari input file lagi setelah klik tombol
-                            file_input = self._find_element_by_xpath_list(self.selectors['media_input_xpath'])
-                            if file_input:
-                                abs_path = os.path.abspath(media_path)
-                                file_input.send_keys(abs_path)
-                                self._log("Media berhasil diupload", "SUCCESS")
-                                time.sleep(3)
-                            else:
-                                raise Exception("Input file tidak ditemukan setelah klik tombol media")
-                        else:
-                            raise Exception("Tombol media dan input file tidak ditemukan")
-                except Exception as e:
-                    self._log(f"Gagal mengupload media: {str(e)}", "WARNING")
-                    # Lanjutkan tanpa media jika gagal
+                if not self._upload_media_to_composer(media_path):
+                    self._log("Media upload gagal, melanjutkan tanpa media...", "WARNING")
             
             # Step 3: Input text jika ada
             if status_text:
