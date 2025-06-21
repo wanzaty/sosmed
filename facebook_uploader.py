@@ -89,22 +89,19 @@ class FacebookUploader:
                 "//div[contains(@class, 'x1i10hfl')]//span[text()='Post']"
             ],
             
-            # XPath untuk tombol media di composer (Photo/Video)
-            'media_button_xpath': [
-                "//div[@aria-label='Photo/video' and @role='button']",
-                "//div[@role='button']//span[contains(text(), 'Photo')]",
-                "//div[@role='button']//span[contains(text(), 'Video')]",
-                "//div[contains(@aria-label, 'Add to your post')]//div[@aria-label='Photo/video']",
-                "//div[contains(@class, 'x1i10hfl')]//div[@aria-label='Photo/video']"
-            ],
-            
-            # XPath untuk input file setelah klik tombol media
-            'media_input_xpath': [
+            # XPath untuk input file - LANGSUNG TERSEDIA setelah klik "What's on your mind"
+            'media_input_direct': [
+                # Input file yang langsung tersedia di composer
                 "//input[@type='file' and contains(@accept, 'image')]",
-                "//input[@type='file' and contains(@accept, 'video')]",
+                "//input[@type='file' and contains(@accept, 'video')]", 
                 "//input[@type='file' and contains(@accept, '.jpg')]",
                 "//input[@type='file' and contains(@accept, '.mp4')]",
-                "//input[@type='file']"
+                "//input[@type='file' and @multiple]",
+                "//input[@type='file']",
+                # Alternatif dengan berbagai kombinasi accept
+                "//input[@accept and @type='file']",
+                "//input[@multiple and @type='file' and contains(@accept, 'image')]",
+                "//input[@multiple and @type='file' and contains(@accept, 'video')]"
             ]
         }
 
@@ -291,6 +288,30 @@ class FacebookUploader:
         self._log("Semua text XPath selector gagal", "WARNING")
         return None
 
+    def _find_file_input_direct(self, timeout: int = 10) -> Optional[Any]:
+        """Mencari input file yang langsung tersedia setelah composer terbuka"""
+        self._log("Mencari input file yang langsung tersedia...")
+        
+        for i, xpath in enumerate(self.selectors['media_input_direct']):
+            try:
+                # Cari input file yang sudah ada (tidak perlu clickable, cukup present)
+                element = WebDriverWait(self.driver, timeout).until(
+                    EC.presence_of_element_located((By.XPATH, xpath))
+                )
+                
+                # Cek apakah element adalah input file yang valid
+                if (element.tag_name.lower() == 'input' and 
+                    element.get_attribute('type') == 'file'):
+                    
+                    self._log(f"Input file ditemukan langsung dengan XPath #{i+1}", "SUCCESS")
+                    return element
+                    
+            except TimeoutException:
+                continue
+        
+        self._log("Input file tidak ditemukan", "WARNING")
+        return None
+
     def _input_text_safely(self, element, text: str) -> bool:
         """Input text dengan berbagai metode yang aman"""
         self._log(f"Memasukkan text: {text[:50]}...")
@@ -371,60 +392,30 @@ class FacebookUploader:
         self._log(f"Semua strategi klik gagal untuk '{description}'", "ERROR")
         return False
 
-    def _upload_media_to_composer(self, media_path: str) -> bool:
-        """Upload media ke composer Facebook dengan pendekatan yang lebih robust"""
-        self._log(f"Mengupload media: {os.path.basename(media_path)}")
+    def _upload_media_direct(self, media_path: str) -> bool:
+        """Upload media langsung ke input file yang sudah tersedia"""
+        self._log(f"Mengupload media langsung: {os.path.basename(media_path)}")
         
         try:
-            # Step 1: Cari tombol Photo/Video di composer
-            self._log("Mencari tombol Photo/Video di composer...")
+            # Cari input file yang langsung tersedia setelah composer terbuka
+            file_input = self._find_file_input_direct(timeout=10)
             
-            media_button = self._find_element_by_xpath_list(self.selectors['media_button_xpath'], timeout=5)
-            
-            if media_button:
-                self._log("Tombol Photo/Video ditemukan, mengklik...")
-                if not self._click_element_with_retry(media_button, "Photo/Video Button"):
-                    raise Exception("Gagal mengklik tombol Photo/Video")
+            if file_input:
+                abs_path = os.path.abspath(media_path)
+                self._log(f"Mengirim file langsung ke input: {abs_path}")
                 
-                time.sleep(3)  # Wait for file dialog
+                # Kirim file ke input
+                file_input.send_keys(abs_path)
                 
-                # Step 2: Cari input file setelah klik tombol
-                self._log("Mencari input file setelah klik tombol...")
-                
-                file_input = self._find_element_by_xpath_list(self.selectors['media_input_xpath'], timeout=10)
-                
-                if file_input:
-                    abs_path = os.path.abspath(media_path)
-                    self._log(f"Mengirim file: {abs_path}")
-                    file_input.send_keys(abs_path)
-                    self._log("Media berhasil diupload!", "SUCCESS")
-                    time.sleep(5)  # Wait for upload to process
-                    return True
-                else:
-                    raise Exception("Input file tidak ditemukan setelah klik tombol")
-            
+                self._log("Media berhasil diupload langsung!", "SUCCESS")
+                time.sleep(5)  # Wait for upload to process
+                return True
             else:
-                # Fallback: Cari input file langsung (mungkin sudah ada)
-                self._log("Tombol Photo/Video tidak ditemukan, mencari input file langsung...")
+                self._log("Input file tidak ditemukan untuk upload langsung", "ERROR")
+                return False
                 
-                file_input = self._find_element_by_xpath_list(self.selectors['media_input_xpath'], timeout=5)
-                
-                if file_input:
-                    abs_path = os.path.abspath(media_path)
-                    self._log(f"Mengirim file langsung: {abs_path}")
-                    file_input.send_keys(abs_path)
-                    self._log("Media berhasil diupload (langsung)!", "SUCCESS")
-                    time.sleep(5)
-                    return True
-                else:
-                    raise Exception("Input file tidak ditemukan sama sekali")
-        
         except Exception as e:
-            self._log(f"Gagal mengupload media: {str(e)}", "ERROR")
-            
-            # Take screenshot untuk debugging
-            self.take_screenshot(f"facebook_media_error_{int(time.time())}.png")
-            
+            self._log(f"Gagal mengupload media langsung: {str(e)}", "ERROR")
             return False
 
     def load_cookies(self) -> bool:
@@ -625,9 +616,15 @@ class FacebookUploader:
             # Take screenshot after composer opens
             self.take_screenshot(f"facebook_composer_opened_{int(time.time())}.png")
             
-            # Step 2: Handle media upload jika ada (SEBELUM text input)
+            # Step 2: Handle media upload LANGSUNG jika ada (input file sudah tersedia)
             if media_path and os.path.exists(media_path):
-                if not self._upload_media_to_composer(media_path):
+                self._log("Mencoba upload media langsung setelah composer terbuka...")
+                
+                if self._upload_media_direct(media_path):
+                    self._log("Media berhasil diupload!", "SUCCESS")
+                    # Take screenshot after media upload
+                    self.take_screenshot(f"facebook_media_uploaded_{int(time.time())}.png")
+                else:
                     self._log("Media upload gagal, melanjutkan tanpa media...", "WARNING")
             
             # Step 3: Input text jika ada
