@@ -81,6 +81,22 @@ class FacebookUploader:
                 "//div[contains(@class, 'notranslate') and @contenteditable='true']"
             ],
             
+            # CSS Selector spesifik untuk text area SETELAH media diupload
+            'composer_text_area_after_media_css': [
+                # CSS Selector yang diberikan user - paling spesifik
+                "#mount_0_0_zr > div > div:nth-child(1) > div > div:nth-child(5) > div > div.__fb-light-mode.x1n2onr6.xzkaem6 > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.x1ed109x.x1iyjqo2.x5yr21d.x1n2onr6.xh8yej3 > div.x9f619.x1iyjqo2.xg7h5cd.xf7dkkf.x1n2onr6.xh8yej3.x1ja2u2z.xjfo4ez > div > div > div:nth-child(2) > div",
+                
+                # Fallback CSS selectors yang lebih umum
+                "div[contenteditable='true'][role='textbox']",
+                "div[contenteditable='true'][data-text]",
+                "div[contenteditable='true']",
+                
+                # Berdasarkan class patterns yang terlihat
+                "div.x1ed109x div[contenteditable='true']",
+                "div.x9f619 div[contenteditable='true']",
+                "form div[contenteditable='true']"
+            ],
+            
             # XPath untuk text area SETELAH media diupload - berdasarkan screenshot
             'composer_text_area_after_media': [
                 # Berdasarkan screenshot: area text di atas video dengan placeholder "What's on your mind, Kurniawan?"
@@ -282,6 +298,25 @@ class FacebookUploader:
         self._log("Semua XPath selector gagal", "WARNING")
         return None
 
+    def _find_element_by_css_list(self, css_list: list, timeout: int = 10) -> Optional[Any]:
+        """Mencari elemen menggunakan multiple CSS selectors"""
+        for i, css_selector in enumerate(css_list):
+            try:
+                element = WebDriverWait(self.driver, timeout).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, css_selector))
+                )
+                
+                # Cek apakah element bisa menerima input
+                if element.is_displayed() and element.is_enabled():
+                    self._log(f"Text element ditemukan dengan CSS #{i+1}", "SUCCESS")
+                    return element
+                    
+            except TimeoutException:
+                continue
+        
+        self._log("Semua CSS selector gagal", "WARNING")
+        return None
+
     def _find_text_element_by_xpath_list(self, xpath_list: list, timeout: int = 10) -> Optional[Any]:
         """Mencari text element yang bisa menerima input"""
         for i, xpath in enumerate(xpath_list):
@@ -379,6 +414,24 @@ class FacebookUploader:
                 self.driver.execute_script("arguments[0].focus();", e),
                 time.sleep(0.3),
                 e.send_keys(t)
+            ),
+            
+            # Strategy 9: JavaScript dengan innerText
+            lambda e, t: (
+                self.driver.execute_script("arguments[0].focus();", e),
+                time.sleep(0.2),
+                self.driver.execute_script("arguments[0].innerText = arguments[1];", e, t),
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e)
+            ),
+            
+            # Strategy 10: Simulate typing character by character
+            lambda e, t: (
+                e.click(),
+                time.sleep(0.3),
+                e.clear(),
+                time.sleep(0.2),
+                [e.send_keys(char) for char in t],
+                time.sleep(0.1)
             )
         ]
         
@@ -392,6 +445,7 @@ class FacebookUploader:
                 current_text = (element.get_attribute('textContent') or 
                               element.get_attribute('innerHTML') or 
                               element.get_attribute('value') or 
+                              element.get_attribute('innerText') or
                               element.text or "")
                 
                 if text.lower() in current_text.lower() or len(current_text.strip()) > 0:
@@ -671,10 +725,17 @@ class FacebookUploader:
             if status_text:
                 self._log("Mencari area text input di composer...")
                 
-                # Pilih selector yang tepat berdasarkan apakah ada media atau tidak
+                text_element = None
+                
+                # Jika ada media, coba CSS selector spesifik terlebih dahulu
                 if media_path and os.path.exists(media_path):
-                    # Jika ada media, gunakan selector khusus untuk setelah media upload
-                    text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area_after_media'])
+                    self._log("Mencoba CSS selector spesifik untuk text area setelah media upload...")
+                    text_element = self._find_element_by_css_list(self.selectors['composer_text_area_after_media_css'])
+                    
+                    # Jika CSS gagal, coba XPath
+                    if not text_element:
+                        self._log("CSS selector gagal, mencoba XPath selector...")
+                        text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area_after_media'])
                 else:
                     # Jika tidak ada media, gunakan selector biasa
                     text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area'])
