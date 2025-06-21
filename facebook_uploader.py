@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Facebook Uploader (Status & Reels) menggunakan Selenium
-Dengan dukungan cookies JSON untuk auto-login dan selector yang dioptimasi
+Dengan XPath selector spesifik yang telah ditentukan
 """
 
 import os
@@ -60,149 +60,16 @@ class FacebookUploader:
         self.base_url = "https://www.facebook.com"
         self.reels_url = "https://www.facebook.com/reels/create/?surface=PROFILE_PLUS"
         
-        # Selectors yang diperbarui untuk Facebook - IMPROVED VERSION
+        # XPath Selectors yang spesifik - HANYA MENGGUNAKAN YANG DIBERIKAN
         self.selectors = {
-            # Status selectors - COMPLETELY REWRITTEN dengan selector yang lebih akurat
-            'status_click_triggers': [
-                # Selector terbaru Facebook 2024
-                "div[role='button'][data-testid='status-attachment-mentions-input']",
-                "div[role='button'][aria-label*=\"What's on your mind\"]",
-                "div[role='button'][aria-label*='mind']",
-                
-                # Fallback untuk berbagai bahasa
-                "div[role='button'][aria-label*='thinking']",
-                "div[role='button'][aria-label*='share']",
-                "div[role='button'][aria-label*='Apa yang']",
-                "div[role='button'][aria-label*='sedang']",
-                
-                # Generic composer triggers
-                "[data-testid='status-attachment-mentions-input']",
-                "[data-testid='composer-input']",
-                "div[contenteditable='true'][role='textbox']",
-                
-                # XPath-based selectors (converted to CSS where possible)
-                "div[role='button'][tabindex='0']",
-                
-                # Last resort - any clickable div that might be composer
-                "div[role='button'][data-testid*='composer']",
-                "div[role='button'][data-testid*='status']",
-                
-                # Alternative approach - look for placeholder text
-                "div[data-testid='status-attachment-mentions-input'] div[role='button']",
-                "div[aria-describedby] div[role='button']"
-            ],
+            # Media upload selector
+            'media_upload': '//*[@id="mount_0_0_qH"]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div/div[2]/div/div[2]/div/div/div/div[1]/div',
             
-            'composer_indicators': [
-                # Primary indicators - what we expect to see when composer is open
-                "form[method='POST'] div[contenteditable='true']",
-                "div[data-testid='composer-input'] div[contenteditable='true']",
-                "div[role='textbox'][contenteditable='true'][aria-multiline='true']",
-                
-                # Secondary indicators
-                "div[aria-label*=\"What's on your mind\"][contenteditable='true']",
-                "div[aria-label*='Write something'][contenteditable='true']",
-                "textarea[placeholder*='mind']",
-                
-                # Generic indicators
-                "div[contenteditable='true'][data-testid]",
-                "div[contenteditable='true'][aria-multiline='true']",
-                "form div[contenteditable='true']",
-                
-                # Post button as indicator
-                "div[aria-label='Post'][role='button']",
-                "div[aria-label='Share'][role='button']"
-            ],
+            # Text input selector
+            'text_input': '//*[@id="mount_0_0_qH"]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[1]/div[1]/div/div',
             
-            'status_input': [
-                # Primary input selectors - UPDATED
-                "div[data-testid='composer-input'] div[contenteditable='true']",
-                "form[method='POST'] div[contenteditable='true'][role='textbox']",
-                "div[role='textbox'][contenteditable='true'][aria-multiline='true']",
-                
-                # Fallback input selectors
-                "div[contenteditable='true'][data-testid*='composer']",
-                "div[contenteditable='true'][aria-label*='mind']",
-                "div[contenteditable='true'][aria-label*='thinking']",
-                "div[contenteditable='true'][aria-label*='Write']",
-                
-                # Generic fallbacks
-                "div[contenteditable='true'][role='textbox']",
-                "div[contenteditable='true'][tabindex='0']",
-                "textarea[placeholder*='mind']",
-                
-                # More specific selectors
-                "div[aria-describedby] div[contenteditable='true']",
-                "div[data-testid='status-attachment-mentions-input'] div[contenteditable='true']"
-            ],
-            
-            'media_upload_input': [
-                "input[type='file'][accept*='image']",
-                "input[type='file'][accept*='video']",
-                "input[type='file'][multiple]",
-                "input[type='file'][data-testid*='composer']",
-                "input[type='file'][data-testid*='photo']",
-                "input[type='file'][aria-label*='photo']",
-                "input[type='file'][aria-label*='video']"
-            ],
-            
-            'post_button': [
-                # Primary post buttons - UPDATED
-                "div[aria-label='Post'][role='button']",
-                "div[aria-label='Share'][role='button']",
-                "button[data-testid='react-composer-post-button']",
-                
-                # Fallback post buttons
-                "div[role='button']:has-text('Post')",
-                "div[role='button']:has-text('Share')",
-                "button:has-text('Post')",
-                "button:has-text('Share')",
-                
-                # Generic post buttons
-                "div[role='button'][tabindex='0']",
-                "button[type='submit']",
-                
-                # More specific selectors
-                "div[aria-label='Post'][role='button'][tabindex='0']",
-                "div[data-testid*='post'] div[role='button']"
-            ],
-            
-            # Reels selectors
-            'reels_upload_input': [
-                "input[type='file'][accept*='video']",
-                "input[type='file'][data-testid*='reels']",
-                "input[type='file'][multiple]"
-            ],
-            
-            'reels_next_buttons': [
-                # English
-                "div[role='button']:has-text('Next')",
-                "button:has-text('Next')",
-                "div[aria-label='Next']",
-                
-                # Indonesian
-                "div[role='button']:has-text('Berikutnya')",
-                "button:has-text('Berikutnya')",
-                "div[aria-label='Berikutnya']"
-            ],
-            
-            'reels_description_input': [
-                "div[contenteditable='true'][aria-label*='description']",
-                "div[contenteditable='true'][aria-label*='deskripsi']",
-                "textarea[placeholder*='description']",
-                "div[contenteditable='true'][role='textbox']"
-            ],
-            
-            'reels_publish_buttons': [
-                # English
-                "div[role='button']:has-text('Publish')",
-                "button:has-text('Publish')",
-                "div[aria-label='Publish']",
-                
-                # Indonesian
-                "div[role='button']:has-text('Terbitkan')",
-                "button:has-text('Terbitkan')",
-                "div[aria-label='Terbitkan']"
-            ]
+            # Post button selector
+            'post_button': '//*[@id="mount_0_0_qH"]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[3]/div[3]/div/div'
         }
 
     def _log(self, message: str, level: str = "INFO"):
@@ -343,47 +210,21 @@ class FacebookUploader:
             self._log(f"Gagal menyiapkan browser: {str(e)}", "ERROR")
             raise
 
-    def _find_element_by_selectors(self, selectors: list, timeout: int = 10, visible: bool = True) -> Optional[Any]:
-        """Mencari elemen menggunakan multiple selectors dengan improved logic"""
-        for i, selector in enumerate(selectors):
-            try:
-                if visible:
-                    element = WebDriverWait(self.driver, timeout).until(
-                        EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
-                    )
-                else:
-                    element = WebDriverWait(self.driver, timeout).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
-                    )
-                
-                if i == 0:
-                    self._log("✅ ✅ ℹ️ ✅ Found element with primary selector", "SUCCESS")
-                else:
-                    self._log(f"⚠️ ⚠️ ⚠️ ⚠️ Exact selector not found, using fallback #{i}", "WARNING")
-                return element
-                
-            except TimeoutException:
-                if i == 0:
-                    self._log("⚠️ ⚠️ ⚠️ ⚠️ Exact selector not found, trying fallbacks...", "WARNING")
-                continue
-                
-        return None
-
-    def _find_elements_by_text(self, text_patterns: list, tag: str = "*") -> list:
-        """Find elements by text content using XPath"""
-        elements = []
-        for pattern in text_patterns:
-            try:
-                xpath = f"//{tag}[contains(text(), '{pattern}')]"
-                found_elements = self.driver.find_elements(By.XPATH, xpath)
-                elements.extend(found_elements)
-            except:
-                continue
-        return elements
+    def _find_element_by_xpath(self, xpath: str, timeout: int = 10) -> Optional[Any]:
+        """Mencari elemen menggunakan XPath"""
+        try:
+            element = WebDriverWait(self.driver, timeout).until(
+                EC.element_to_be_clickable((By.XPATH, xpath))
+            )
+            self._log("Elemen ditemukan dengan XPath", "SUCCESS")
+            return element
+        except TimeoutException:
+            self._log("Elemen tidak ditemukan dengan XPath", "WARNING")
+            return None
 
     def _click_element_with_retry(self, element, description: str = "element") -> bool:
         """Click element dengan multiple strategies dan retry"""
-        self._log(f"ℹ️ ℹ️ ℹ️ 🖱️ Clicking '{description}' element...")
+        self._log(f"Mengklik '{description}'...")
         
         strategies = [
             ("regular", lambda e: e.click()),
@@ -395,184 +236,17 @@ class FacebookUploader:
         
         for strategy_name, strategy_func in strategies:
             try:
-                self._log(f"ℹ️ 🖱️ Attempting {strategy_name} click on '{description}' click...")
+                self._log(f"Mencoba {strategy_name} click...")
                 strategy_func(element)
-                self._log(f"✅ ✅ ✅ ✅ CLICK SUCCESS: {strategy_name.title()} click on '{description}' click", "SUCCESS")
-                time.sleep(2)  # Wait for action to take effect
+                self._log(f"Berhasil klik dengan {strategy_name}", "SUCCESS")
+                time.sleep(2)
                 return True
                 
             except Exception as e:
-                self._log(f"❌ {strategy_name.title()} click failed: {str(e)}", "DEBUG")
+                self._log(f"{strategy_name} click gagal: {str(e)}", "DEBUG")
                 continue
         
-        self._log(f"❌ ❌ ❌ All click strategies failed for '{description}'", "ERROR")
-        return False
-
-    def _validate_composer_open(self) -> bool:
-        """Validate apakah composer benar-benar terbuka - IMPROVED VERSION"""
-        self._log("ℹ️ 🔍 🔍 VALIDATING: Checking if composer is really open...")
-        
-        indicators_found = 0
-        
-        # Check for composer indicators
-        for selector in self.selectors['composer_indicators']:
-            try:
-                elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                for element in elements:
-                    if element.is_displayed() and element.is_enabled():
-                        indicators_found += 1
-                        break
-            except:
-                continue
-        
-        # Additional check: look for text-based indicators
-        text_indicators = [
-            "What's on your mind",
-            "Write something",
-            "Share an update",
-            "Post"
-        ]
-        
-        for text in text_indicators:
-            try:
-                xpath = f"//*[contains(text(), '{text}')]"
-                elements = self.driver.find_elements(By.XPATH, xpath)
-                if elements:
-                    indicators_found += 1
-                    break
-            except:
-                continue
-        
-        self._log(f"ℹ️ 🔍 Found {indicators_found} composer indicators")
-        
-        # Lower threshold - even 1 indicator might be enough
-        if indicators_found >= 1:
-            self._log("✅ ✅ ✅ ✅ VALIDATION SUCCESS: Composer is open!", "SUCCESS")
-            return True
-        else:
-            self._log("❌ ❌ ❌ ❌ VALIDATION FAILED: Composer not open ({} indicators found)".format(indicators_found), "ERROR")
-            return False
-
-    def _open_composer_with_strategies(self) -> bool:
-        """Buka composer dengan multiple strategies - COMPLETELY REWRITTEN"""
-        
-        # Strategy 1: Click "What's on your mind" trigger
-        self._log("ℹ️ 🎯 🎯 STEP 1: Looking for 'What's on your mind' click element...")
-        click_element = self._find_element_by_selectors(self.selectors['status_click_triggers'], timeout=10)
-        
-        if click_element:
-            if self._click_element_with_retry(click_element, "What's on your mind"):
-                time.sleep(3)  # Give more time for composer to load
-                if self._validate_composer_open():
-                    return True
-        
-        self._log("⚠️ ⚠️ ⚠️ Composer not opened after click, trying alternative strategies...", "WARNING")
-        
-        # Strategy 2: Look for composer directly
-        self._log("ℹ️ 🎯 🎯 STRATEGY 2: Looking for composer directly...")
-        composer_input = self._find_element_by_selectors(self.selectors['status_input'], timeout=5)
-        if composer_input:
-            try:
-                composer_input.click()
-                time.sleep(2)
-                if self._validate_composer_open():
-                    return True
-            except:
-                pass
-        
-        # Strategy 3: Try text-based search
-        self._log("ℹ️ 🎯 🎯 STRATEGY 3: Searching by text content...")
-        text_patterns = ["What's on your mind", "Write something", "Share an update"]
-        text_elements = self._find_elements_by_text(text_patterns, "div")
-        
-        for element in text_elements:
-            try:
-                if element.is_displayed() and element.is_enabled():
-                    if self._click_element_with_retry(element, "Text-based element"):
-                        time.sleep(3)
-                        if self._validate_composer_open():
-                            return True
-            except:
-                continue
-        
-        # Strategy 4: Try keyboard shortcut
-        self._log("ℹ️ 🎯 🎯 STRATEGY 4: Trying keyboard shortcut...")
-        try:
-            ActionChains(self.driver).send_keys(Keys.TAB).send_keys(Keys.ENTER).perform()
-            time.sleep(2)
-            if self._validate_composer_open():
-                return True
-        except:
-            pass
-        
-        # Strategy 5: Try direct URL navigation to force composer
-        self._log("ℹ️ 🎯 🎯 STRATEGY 5: Trying direct URL navigation...")
-        try:
-            self.driver.get(f"{self.base_url}/?sk=h_chr")  # Home with composer focus
-            time.sleep(5)
-            if self._validate_composer_open():
-                return True
-        except:
-            pass
-        
-        # Strategy 6: Try scrolling and looking again
-        self._log("ℹ️ 🎯 🎯 STRATEGY 6: Scrolling and looking for composer...")
-        try:
-            self.driver.execute_script("window.scrollTo(0, 0);")  # Scroll to top
-            time.sleep(2)
-            
-            # Try clicking again after scroll
-            click_element = self._find_element_by_selectors(self.selectors['status_click_triggers'], timeout=5)
-            if click_element:
-                if self._click_element_with_retry(click_element, "What's on your mind (after scroll)"):
-                    time.sleep(3)
-                    if self._validate_composer_open():
-                        return True
-        except:
-            pass
-        
-        # Strategy 7: Force composer by JavaScript
-        self._log("ℹ️ 🎯 🎯 STRATEGY 7: Force composer with JavaScript...")
-        try:
-            # Try to trigger composer with JavaScript
-            js_script = """
-            var composerTriggers = document.querySelectorAll('[role="button"]');
-            for (var i = 0; i < composerTriggers.length; i++) {
-                var element = composerTriggers[i];
-                var text = element.textContent || element.innerText || '';
-                var ariaLabel = element.getAttribute('aria-label') || '';
-                if (text.includes('mind') || ariaLabel.includes('mind') || 
-                    text.includes('thinking') || ariaLabel.includes('thinking')) {
-                    element.click();
-                    break;
-                }
-            }
-            """
-            self.driver.execute_script(js_script)
-            time.sleep(3)
-            if self._validate_composer_open():
-                return True
-        except:
-            pass
-        
-        # Strategy 8: Last resort - try any button that might be composer
-        self._log("ℹ️ 🎯 🎯 STRATEGY 8: Last resort - trying any potential composer button...")
-        try:
-            buttons = self.driver.find_elements(By.CSS_SELECTOR, "div[role='button']")
-            for button in buttons[:10]:  # Try first 10 buttons
-                try:
-                    if button.is_displayed() and button.is_enabled():
-                        aria_label = button.get_attribute('aria-label') or ''
-                        if any(keyword in aria_label.lower() for keyword in ['mind', 'post', 'share', 'write']):
-                            button.click()
-                            time.sleep(2)
-                            if self._validate_composer_open():
-                                return True
-                except:
-                    continue
-        except:
-            pass
-        
+        self._log(f"Semua strategi klik gagal untuk '{description}'", "ERROR")
         return False
 
     def load_cookies(self) -> bool:
@@ -708,7 +382,7 @@ class FacebookUploader:
 
     def upload_status(self, status_text: str = "", media_path: str = "") -> Dict[str, Any]:
         """
-        Upload status ke Facebook dengan dukungan media
+        Upload status ke Facebook dengan XPath selector spesifik
         
         Args:
             status_text: Text status
@@ -727,7 +401,7 @@ class FacebookUploader:
             # Navigate ke Facebook
             self._log("Navigating to Facebook...")
             self.driver.get(self.base_url)
-            time.sleep(5)  # Give more time for page to load
+            time.sleep(5)
             
             # Take screenshot before starting
             self.take_screenshot(f"facebook_before_post_{int(time.time())}.png")
@@ -754,53 +428,63 @@ class FacebookUploader:
             else:
                 raise ValueError("Minimal status text atau media diperlukan")
             
-            self._log(f"🎯 🎯 MODE: {mode}")
+            self._log(f"MODE: {mode}")
             
-            # Open composer dengan improved strategies
-            if not self._open_composer_with_strategies():
-                raise Exception("Composer tidak terbuka setelah semua strategi dicoba")
-            
-            # Input status text jika ada
-            if status_text:
-                self._log(f"Memposting status: {status_text[:50]}...")
-                
-                status_input = self._find_element_by_selectors(self.selectors['status_input'])
-                if not status_input:
-                    raise NoSuchElementException("Input status tidak ditemukan")
-                
-                # Clear dan input text
-                status_input.clear()
-                status_input.send_keys(status_text)
-                self._log("Status text berhasil dimasukkan", "SUCCESS")
-                time.sleep(1)
-            
-            # Upload media jika ada
+            # Step 1: Upload media jika ada (harus dilakukan dulu)
             if media_path and os.path.exists(media_path):
                 self._log(f"Mengupload media: {os.path.basename(media_path)}")
                 
-                media_input = self._find_element_by_selectors(self.selectors['media_upload_input'])
-                if not media_input:
-                    raise NoSuchElementException("Input media tidak ditemukan")
+                # Cari elemen media upload menggunakan XPath spesifik
+                media_element = self._find_element_by_xpath(self.selectors['media_upload'])
+                if not media_element:
+                    raise NoSuchElementException("Elemen media upload tidak ditemukan")
                 
-                abs_path = os.path.abspath(media_path)
-                media_input.send_keys(abs_path)
-                self._log("Media berhasil diupload", "SUCCESS")
-                time.sleep(3)  # Wait for media processing
+                # Klik elemen media upload
+                if not self._click_element_with_retry(media_element, "Media Upload"):
+                    raise Exception("Gagal mengklik elemen media upload")
+                
+                time.sleep(2)
+                
+                # Cari input file (biasanya muncul setelah klik)
+                try:
+                    file_input = self.driver.find_element(By.CSS_SELECTOR, "input[type='file']")
+                    abs_path = os.path.abspath(media_path)
+                    file_input.send_keys(abs_path)
+                    self._log("Media berhasil diupload", "SUCCESS")
+                    time.sleep(3)  # Wait for media processing
+                except Exception as e:
+                    raise Exception(f"Gagal mengupload media: {str(e)}")
             
-            # Post status
+            # Step 2: Input text jika ada
+            if status_text:
+                self._log(f"Memasukkan text: {status_text[:50]}...")
+                
+                # Cari elemen text input menggunakan XPath spesifik
+                text_element = self._find_element_by_xpath(self.selectors['text_input'])
+                if not text_element:
+                    raise NoSuchElementException("Elemen text input tidak ditemukan")
+                
+                # Klik dan input text
+                text_element.click()
+                time.sleep(1)
+                text_element.clear()
+                text_element.send_keys(status_text)
+                self._log("Text berhasil dimasukkan", "SUCCESS")
+                time.sleep(1)
+            
+            # Step 3: Klik tombol post
             self._log("Mencari tombol post...")
-            post_button = self._find_element_by_selectors(self.selectors['post_button'])
-            
-            if not post_button:
+            post_element = self._find_element_by_xpath(self.selectors['post_button'])
+            if not post_element:
                 raise NoSuchElementException("Tombol post tidak ditemukan")
             
-            if self._click_element_with_retry(post_button, "Post"):
-                self._log("Post berhasil (kembali ke feed)", "SUCCESS")
+            if self._click_element_with_retry(post_element, "Post Button"):
+                self._log("Post berhasil diklik", "SUCCESS")
                 time.sleep(5)
                 
                 # Cek apakah kembali ke feed (indikasi sukses)
                 current_url = self.driver.current_url
-                if self.base_url in current_url and "composer" not in current_url:
+                if self.base_url in current_url:
                     self._log("Status berhasil dipost ke Facebook!", "SUCCESS")
                     return {
                         "success": True,
@@ -883,25 +567,23 @@ class FacebookUploader:
             self._log("Memulai upload video reels...")
             
             # Upload video
-            upload_input = self._find_element_by_selectors(self.selectors['reels_upload_input'])
-            if not upload_input:
-                raise NoSuchElementException("Input upload reels tidak ditemukan")
-            
-            self._log("Input upload ditemukan. Mengirim file...")
-            abs_path = os.path.abspath(video_path)
-            upload_input.send_keys(abs_path)
-            self._log("File video berhasil dikirim ke input.", "SUCCESS")
-            
-            # Wait for upload processing
-            time.sleep(5)
+            try:
+                upload_input = self.driver.find_element(By.CSS_SELECTOR, "input[type='file'][accept*='video']")
+                abs_path = os.path.abspath(video_path)
+                upload_input.send_keys(abs_path)
+                self._log("File video berhasil dikirim ke input.", "SUCCESS")
+                time.sleep(5)
+            except Exception as e:
+                raise Exception(f"Gagal mengupload video: {str(e)}")
             
             # Click Next buttons (bisa ada beberapa step)
             for i in range(1, 4):  # Max 3 next buttons
                 try:
-                    next_button = self._find_element_by_selectors(self.selectors['reels_next_buttons'], timeout=10)
-                    if next_button:
-                        next_button.click()
-                        self._log(f"Tombol 'Next' berhasil diklik (index {i})!", "SUCCESS")
+                    # Cari tombol Next/Berikutnya
+                    next_buttons = self.driver.find_elements(By.XPATH, "//*[contains(text(), 'Next') or contains(text(), 'Berikutnya')]")
+                    if next_buttons:
+                        next_buttons[0].click()
+                        self._log(f"Tombol 'Next' berhasil diklik (step {i})!", "SUCCESS")
                         time.sleep(3)
                     else:
                         break
@@ -911,23 +593,28 @@ class FacebookUploader:
             # Add description jika ada
             if description:
                 self._log("Mengisi deskripsi reels...")
-                desc_input = self._find_element_by_selectors(self.selectors['reels_description_input'])
-                if desc_input:
-                    desc_input.clear()
-                    desc_input.send_keys(description)
-                    self._log("Deskripsi berhasil diisi", "SUCCESS")
-                    time.sleep(1)
+                try:
+                    desc_inputs = self.driver.find_elements(By.CSS_SELECTOR, "div[contenteditable='true']")
+                    if desc_inputs:
+                        desc_inputs[0].clear()
+                        desc_inputs[0].send_keys(description)
+                        self._log("Deskripsi berhasil diisi", "SUCCESS")
+                        time.sleep(1)
+                except:
+                    self._log("Gagal mengisi deskripsi", "WARNING")
             
             # Publish reels
             self._log("Mencari tombol publish...")
-            publish_button = self._find_element_by_selectors(self.selectors['reels_publish_buttons'])
-            
-            if not publish_button:
-                raise NoSuchElementException("Tombol publish tidak ditemukan")
-            
-            publish_button.click()
-            self._log("Tombol 'Publish' berhasil diklik!", "SUCCESS")
-            time.sleep(5)
+            try:
+                publish_buttons = self.driver.find_elements(By.XPATH, "//*[contains(text(), 'Publish') or contains(text(), 'Terbitkan')]")
+                if publish_buttons:
+                    publish_buttons[0].click()
+                    self._log("Tombol 'Publish' berhasil diklik!", "SUCCESS")
+                    time.sleep(5)
+                else:
+                    raise Exception("Tombol publish tidak ditemukan")
+            except Exception as e:
+                raise Exception(f"Gagal mengklik tombol publish: {str(e)}")
             
             self._log("Upload video reels berhasil!", "SUCCESS")
             self._log("Reels berhasil diupload ke Facebook!", "SUCCESS")
