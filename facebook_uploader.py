@@ -148,7 +148,7 @@ class FacebookUploader:
             raise FileNotFoundError("ChromeDriver tidak ditemukan. Silakan install Chrome dan ChromeDriver.")
 
     def _setup_driver(self):
-        """Setup Chrome WebDriver dengan konfigurasi optimal"""
+        """Setup Chrome WebDriver dengan konfigurasi optimal untuk Facebook"""
         self._log("Menyiapkan browser untuk Facebook...")
         
         chrome_options = Options()
@@ -159,22 +159,30 @@ class FacebookUploader:
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
         chrome_options.add_argument("--window-size=1280,800")
         
-        # Additional Chrome options
+        # PENTING: HAPUS pengaturan yang menonaktifkan gambar
+        # chrome_options.add_argument('--disable-images')  # DIHAPUS
+        # chrome_options.add_argument('--blink-settings=imagesEnabled=false')  # DIHAPUS
+        
+        # Chrome options yang aman untuk Facebook
         if self.headless:
             chrome_options.add_argument('--headless=new')
+            self._log("Mode headless diaktifkan", "WARNING")
+        else:
+            self._log("Mode normal (dengan gambar) diaktifkan", "SUCCESS")
+        
         chrome_options.add_argument('--disable-extensions')
         chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--disable-images')
-        chrome_options.add_argument('--blink-settings=imagesEnabled=false')
         chrome_options.add_argument('--disable-plugins-discovery')
         chrome_options.add_argument('--disable-translate')
         chrome_options.add_argument('--disable-popup-blocking')
         chrome_options.add_argument('--disable-notifications')
         chrome_options.add_argument('--disable-geolocation')
         chrome_options.add_argument('--disable-media-stream')
+        
+        # User agent yang realistis
         chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         
-        # Suppress logs
+        # Suppress logs tapi tetap izinkan gambar
         chrome_options.add_argument("--log-level=3")
         chrome_options.add_argument("--silent")
         chrome_options.add_argument("--disable-logging")
@@ -185,8 +193,13 @@ class FacebookUploader:
         chrome_options.add_experimental_option('useAutomationExtension', False)
         chrome_options.add_argument("--disable-web-security")
         
-        if self.headless:
-            self._log("Mode headless diaktifkan")
+        # Prefs untuk memastikan gambar dimuat
+        prefs = {
+            "profile.managed_default_content_settings.images": 1,  # 1 = allow images
+            "profile.default_content_setting_values.notifications": 2,  # 2 = block notifications
+            "profile.default_content_settings.popups": 0  # 0 = allow popups (untuk composer)
+        }
+        chrome_options.add_experimental_option("prefs", prefs)
         
         try:
             driver_path = self._get_chromedriver_path()
