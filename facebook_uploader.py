@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Facebook Uploader (Status & Reels) menggunakan Selenium
-Dengan CSS selector spesifik yang telah ditentukan
+Dengan XPath selector yang valid untuk Facebook
 """
 
 import os
@@ -60,41 +60,41 @@ class FacebookUploader:
         self.base_url = "https://www.facebook.com"
         self.reels_url = "https://www.facebook.com/reels/create/?surface=PROFILE_PLUS"
         
-        # CSS Selectors yang BENAR - berdasarkan gambar yang diberikan
+        # XPath Selectors yang VALID - berdasarkan yang Anda berikan
         self.selectors = {
-            # Selector untuk area "What's on your mind" yang benar (bukan profil)
-            'status_trigger': [
-                # Selector untuk area input utama (yang di gambar)
-                'div[role="button"][tabindex="0"] span:contains("What\'s on your mind")',
-                'div[data-pagelet="FeedUnit_0"] div[role="button"]',
-                'div[aria-label*="Create a post"] div[role="button"]',
-                # Fallback selectors
-                'div[data-testid="status-attachment-mentions-input"]',
-                'div[role="button"]:has(span:contains("What\'s on your mind"))',
-                'div.x1i10hfl.xjbqb8w.x6umtig.x1b1mbwd.xaqea5y.xav7gou.x9f619.x1ypdohk.xe8uvvx.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x16tdsg8.x1hl2dhg.xggy1nq.x1a2a7pz.x1heor9g.xt0b8zv.xo1l8bm'
+            # XPath untuk area "What's on your mind" yang benar
+            'status_trigger_xpath': [
+                # XPath berdasarkan text content
+                "//span[contains(text(), \"What's on your mind\")]",
+                "//span[contains(text(), \"What's on your mind\")]/ancestor::div[@role='button']",
+                "//div[@role='button']//span[contains(text(), \"What's on your mind\")]",
+                # Fallback XPath
+                "//div[@data-pagelet='FeedUnit_0']//div[@role='button']",
+                "//div[contains(@aria-label, 'Create a post')]//div[@role='button']"
             ],
             
-            # Selector untuk text input setelah composer terbuka
-            'text_input': [
-                'div[contenteditable="true"][data-lexical-editor="true"]',
-                'div[aria-label*="What\'s on your mind"]',
-                'div.notranslate[contenteditable="true"]',
-                'div[role="textbox"][contenteditable="true"]'
+            # XPath untuk text input (TEXT ONLY)
+            'text_input_only_xpath': [
+                "//span[contains(text(), \"What's on your mind\") and contains(@style, '-webkit-box-orient:vertical')]"
             ],
             
-            # Selector untuk tombol Post
-            'post_button': [
-                'div[aria-label="Post"][role="button"]',
-                'div[data-testid="react-composer-post-button"]',
-                'div:contains("Post")[role="button"]',
-                'button:contains("Post")'
+            # XPath untuk text input (TEXT + MEDIA)
+            'text_input_media_xpath': [
+                "//div[@contenteditable='true' and @role='textbox' and contains(@aria-placeholder, \"What's on your mind\")]"
             ],
             
-            # Selector untuk upload media
-            'media_input': [
-                'input[type="file"][accept*="image"]',
-                'input[type="file"][accept*="video"]',
-                'input[type="file"]'
+            # XPath untuk tombol Post
+            'post_button_xpath': [
+                "//div[@aria-label='Post' and @role='button']",
+                "//div[@role='button']//span[text()='Post']",
+                "//button//span[text()='Post']"
+            ],
+            
+            # XPath untuk upload media
+            'media_input_xpath': [
+                "//input[@type='file' and contains(@accept, 'image')]",
+                "//input[@type='file' and contains(@accept, 'video')]",
+                "//input[@type='file']"
             ]
         }
 
@@ -245,31 +245,19 @@ class FacebookUploader:
             self._log(f"Gagal menyiapkan browser: {str(e)}", "ERROR")
             raise
 
-    def _find_element_by_selectors(self, selectors: list, timeout: int = 10) -> Optional[Any]:
-        """Mencari elemen menggunakan multiple selectors"""
-        for i, selector in enumerate(selectors):
+    def _find_element_by_xpath_list(self, xpath_list: list, timeout: int = 10) -> Optional[Any]:
+        """Mencari elemen menggunakan multiple XPath selectors"""
+        for i, xpath in enumerate(xpath_list):
             try:
-                # Coba dengan CSS selector biasa
                 element = WebDriverWait(self.driver, timeout).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                    EC.element_to_be_clickable((By.XPATH, xpath))
                 )
-                self._log(f"Elemen ditemukan dengan selector #{i+1}", "SUCCESS")
+                self._log(f"Elemen ditemukan dengan XPath #{i+1}", "SUCCESS")
                 return element
             except TimeoutException:
-                # Jika CSS selector gagal, coba dengan XPath untuk :contains
-                if ':contains(' in selector:
-                    try:
-                        xpath_selector = selector.replace(':contains(', '[contains(text(), ').replace(')', ')]')
-                        element = WebDriverWait(self.driver, timeout).until(
-                            EC.element_to_be_clickable((By.XPATH, f"//*{xpath_selector}"))
-                        )
-                        self._log(f"Elemen ditemukan dengan XPath #{i+1}", "SUCCESS")
-                        return element
-                    except TimeoutException:
-                        continue
                 continue
         
-        self._log("Semua selector gagal", "WARNING")
+        self._log("Semua XPath selector gagal", "WARNING")
         return None
 
     def _click_element_with_retry(self, element, description: str = "element") -> bool:
@@ -432,7 +420,7 @@ class FacebookUploader:
 
     def upload_status(self, status_text: str = "", media_path: str = "") -> Dict[str, Any]:
         """
-        Upload status ke Facebook dengan selector yang diperbaiki
+        Upload status ke Facebook dengan XPath selector yang valid
         
         Args:
             status_text: Text status
@@ -483,25 +471,7 @@ class FacebookUploader:
             # Step 1: Klik area "What's on your mind" yang BENAR
             self._log("Mencari area 'What's on your mind' yang benar...")
             
-            # Coba dengan berbagai strategi untuk menemukan area yang tepat
-            trigger_element = None
-            
-            # Strategi 1: Cari berdasarkan text content
-            try:
-                elements = self.driver.find_elements(By.XPATH, "//*[contains(text(), \"What's on your mind\")]")
-                for element in elements:
-                    # Pastikan bukan elemen profil/avatar
-                    parent = element.find_element(By.XPATH, "./..")
-                    if parent.get_attribute("role") == "button" and "tabindex" in parent.get_attribute("outerHTML"):
-                        trigger_element = parent
-                        self._log("Ditemukan area 'What's on your mind' yang tepat", "SUCCESS")
-                        break
-            except:
-                pass
-            
-            # Strategi 2: Gunakan selector fallback
-            if not trigger_element:
-                trigger_element = self._find_element_by_selectors(self.selectors['status_trigger'])
+            trigger_element = self._find_element_by_xpath_list(self.selectors['status_trigger_xpath'])
             
             if not trigger_element:
                 raise NoSuchElementException("Area 'What's on your mind' tidak ditemukan")
@@ -512,42 +482,63 @@ class FacebookUploader:
             
             time.sleep(3)  # Wait for composer to open
             
-            # Step 2: Upload media jika ada
-            if media_path and os.path.exists(media_path):
-                self._log(f"Mengupload media: {os.path.basename(media_path)}")
+            # Step 2: Handle berdasarkan mode
+            if mode == "TEXT ONLY":
+                # Untuk TEXT ONLY, gunakan selector khusus
+                self._log("Mode TEXT ONLY - mencari input text...")
                 
-                try:
-                    # Cari input file
-                    file_input = self._find_element_by_selectors(self.selectors['media_input'])
-                    if file_input:
-                        abs_path = os.path.abspath(media_path)
-                        file_input.send_keys(abs_path)
-                        self._log("Media berhasil diupload", "SUCCESS")
-                        time.sleep(3)
-                    else:
-                        raise Exception("Input file tidak ditemukan")
-                except Exception as e:
-                    raise Exception(f"Gagal mengupload media: {str(e)}")
-            
-            # Step 3: Input text jika ada
-            if status_text:
-                self._log(f"Memasukkan text: {status_text[:50]}...")
-                
-                text_element = self._find_element_by_selectors(self.selectors['text_input'])
+                text_element = self._find_element_by_xpath_list(self.selectors['text_input_only_xpath'])
                 if not text_element:
-                    raise NoSuchElementException("Text input element tidak ditemukan")
+                    raise NoSuchElementException("Text input element (TEXT ONLY) tidak ditemukan")
                 
                 # Klik dan input text
-                text_element.click()
-                time.sleep(1)
-                text_element.clear()
-                text_element.send_keys(status_text)
-                self._log("Text berhasil dimasukkan", "SUCCESS")
-                time.sleep(1)
+                if self._click_element_with_retry(text_element, "Text Input Area"):
+                    time.sleep(1)
+                    # Clear existing text dan input yang baru
+                    text_element.clear()
+                    text_element.send_keys(status_text)
+                    self._log("Text berhasil dimasukkan", "SUCCESS")
+                    time.sleep(1)
+                else:
+                    raise Exception("Gagal mengklik text input area")
             
-            # Step 4: Klik tombol post
+            elif mode in ["TEXT + MEDIA", "MEDIA ONLY"]:
+                # Step 2a: Upload media jika ada
+                if media_path and os.path.exists(media_path):
+                    self._log(f"Mengupload media: {os.path.basename(media_path)}")
+                    
+                    try:
+                        # Cari input file
+                        file_input = self._find_element_by_xpath_list(self.selectors['media_input_xpath'])
+                        if file_input:
+                            abs_path = os.path.abspath(media_path)
+                            file_input.send_keys(abs_path)
+                            self._log("Media berhasil diupload", "SUCCESS")
+                            time.sleep(3)
+                        else:
+                            raise Exception("Input file tidak ditemukan")
+                    except Exception as e:
+                        raise Exception(f"Gagal mengupload media: {str(e)}")
+                
+                # Step 2b: Input text jika ada (untuk TEXT + MEDIA)
+                if status_text:
+                    self._log(f"Memasukkan text: {status_text[:50]}...")
+                    
+                    text_element = self._find_element_by_xpath_list(self.selectors['text_input_media_xpath'])
+                    if not text_element:
+                        raise NoSuchElementException("Text input element (TEXT + MEDIA) tidak ditemukan")
+                    
+                    # Klik dan input text
+                    text_element.click()
+                    time.sleep(1)
+                    text_element.clear()
+                    text_element.send_keys(status_text)
+                    self._log("Text berhasil dimasukkan", "SUCCESS")
+                    time.sleep(1)
+            
+            # Step 3: Klik tombol post
             self._log("Mencari tombol post...")
-            post_element = self._find_element_by_selectors(self.selectors['post_button'])
+            post_element = self._find_element_by_xpath_list(self.selectors['post_button_xpath'])
             if not post_element:
                 raise NoSuchElementException("Tombol post tidak ditemukan")
             
@@ -641,7 +632,7 @@ class FacebookUploader:
             
             # Upload video
             try:
-                upload_input = self.driver.find_element(By.CSS_SELECTOR, "input[type='file'][accept*='video']")
+                upload_input = self.driver.find_element(By.XPATH, "//input[@type='file' and contains(@accept, 'video')]")
                 abs_path = os.path.abspath(video_path)
                 upload_input.send_keys(abs_path)
                 self._log("File video berhasil dikirim ke input.", "SUCCESS")
@@ -667,7 +658,7 @@ class FacebookUploader:
             if description:
                 self._log("Mengisi deskripsi reels...")
                 try:
-                    desc_inputs = self.driver.find_elements(By.CSS_SELECTOR, "div[contenteditable='true']")
+                    desc_inputs = self.driver.find_elements(By.XPATH, "//div[@contenteditable='true']")
                     if desc_inputs:
                         desc_inputs[0].clear()
                         desc_inputs[0].send_keys(description)
