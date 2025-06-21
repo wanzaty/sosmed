@@ -81,30 +81,12 @@ class FacebookUploader:
                 "//div[contains(@class, 'notranslate') and @contenteditable='true']"
             ],
             
-            # CSS Selector berdasarkan DOM yang terlihat di screenshot
-            'composer_text_area_css': [
-                # Berdasarkan DOM screenshot - area text di atas video
-                "div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate[contenteditable='true']",
-                
-                # Selector yang lebih spesifik berdasarkan class yang terlihat
-                "div.notranslate[contenteditable='true'][role='textbox']",
-                
-                # Fallback berdasarkan struktur yang terlihat
-                "div[contenteditable='true'][data-lexical-editor='true']",
-                "div[contenteditable='true'][aria-placeholder*='What']",
-                "div[contenteditable='true'][tabindex='0']",
-                
-                # Generic fallbacks
-                "div[contenteditable='true'][role='textbox']",
-                "div[contenteditable='true']"
-            ],
-            
             # XPath untuk text area SETELAH media diupload - berdasarkan screenshot
             'composer_text_area_after_media': [
                 # Berdasarkan screenshot: area text di atas video dengan placeholder "What's on your mind, Kurniawan?"
-                "//div[@contenteditable='true' and contains(@data-text, 'What')]",
+                "//div[@contenteditable='true' and contains(@data-text, \"What's on your mind\")]",
                 "//div[@contenteditable='true' and @data-text]",
-                "//div[@contenteditable='true' and contains(@aria-placeholder, 'What')]",
+                "//div[@contenteditable='true' and contains(@aria-label, 'What\\'s on your mind')]",
                 "//div[@contenteditable='true' and @role='textbox' and @data-text]",
                 # Selector berdasarkan posisi di atas media
                 "//div[contains(@class, 'x1ed109x')]//div[@contenteditable='true']",
@@ -112,6 +94,34 @@ class FacebookUploader:
                 # Fallback umum
                 "//div[@contenteditable='true' and @role='textbox']",
                 "//div[@contenteditable='true']"
+            ],
+            
+            # CSS Selectors untuk text area berdasarkan DOM structure yang diberikan
+            'composer_text_area_css': [
+                # Selector berdasarkan DOM structure yang diberikan user
+                "#mount_0_0_zr > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.x1ed109x.x1iyjqo2.x5yr21d.x1n2onr6.xh8yej3 > div.x9f619.x1iyjqo2.xg7h5cd.xf7dkkf.x1n2onr6.xh8yej3.x1ja2u2z.xjfo4ez > div > div > div:nth-child(2) > div",
+                # Alternatif CSS selectors
+                "div[contenteditable='true'][role='textbox']",
+                "div[contenteditable='true'][data-lexical-editor='true']",
+                "div[contenteditable='true'][aria-placeholder*='mind']",
+                "div[contenteditable='true'].notranslate",
+                "div[contenteditable='true']"
+            ],
+            
+            # Selector untuk verifikasi media upload
+            'media_verification': [
+                # Selector yang diberikan user untuk video
+                "#mount_0_0_zr > div > div:nth-child(1) > div > div:nth-child(5) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > form > div > div.x9f619.x1ja2u2z.x1k90msu.x6o7n8i.x1qfuztq.x1o0tod.x10l6tqk.x13vifvy.x1hc1fzr.x71s49j > div > div > div > div.xb57i2i.x1q594ok.x5lxg6s.x6ikm8r.x1ja2u2z.x1pq812k.x1rohswg.xfk6m8.x1yqm8si.xjx87ck.xx8ngbg.xwo3gff.x1n2onr6.x1oyok0e.x1odjw0f.x1e4zzel.x78zum5.xdt5ytf.x1iyjqo2 > div.x78zum5.xdt5ytf.x1iyjqo2.x1n2onr6 > div.xf159sx.xmzvs34 > div > div.x1obq294.x5a5i1n.xde0f50.x15x8krk.x6ikm8r.x10wlt62.x1n2onr6.xh8yej3 > div:nth-child(1) > div > div > video",
+                # Alternatif selectors untuk media verification
+                "video[src]",
+                "video[data-video-id]",
+                "img[src*='blob:']",
+                "video[src*='blob:']",
+                "div[data-video-id]",
+                ".x1obq294 video",
+                ".xf159sx video",
+                "video",
+                "img[alt*='preview']"
             ],
             
             # XPath untuk tombol Post di composer
@@ -300,25 +310,6 @@ class FacebookUploader:
         self._log("Semua XPath selector gagal", "WARNING")
         return None
 
-    def _find_element_by_css_list(self, css_list: list, timeout: int = 10) -> Optional[Any]:
-        """Mencari elemen menggunakan multiple CSS selectors"""
-        for i, css_selector in enumerate(css_list):
-            try:
-                element = WebDriverWait(self.driver, timeout).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, css_selector))
-                )
-                
-                # Cek apakah element bisa menerima input
-                if element.is_displayed() and element.is_enabled():
-                    self._log(f"Text element ditemukan dengan CSS #{i+1}", "SUCCESS")
-                    return element
-                    
-            except TimeoutException:
-                continue
-        
-        self._log("Semua CSS selector gagal", "WARNING")
-        return None
-
     def _find_text_element_by_xpath_list(self, xpath_list: list, timeout: int = 10) -> Optional[Any]:
         """Mencari text element yang bisa menerima input"""
         for i, xpath in enumerate(xpath_list):
@@ -338,6 +329,27 @@ class FacebookUploader:
                 continue
         
         self._log("Semua text XPath selector gagal", "WARNING")
+        return None
+
+    def _find_text_element_by_css_list(self, css_list: list, timeout: int = 10) -> Optional[Any]:
+        """Mencari text element menggunakan CSS selectors"""
+        for i, css_selector in enumerate(css_list):
+            try:
+                element = WebDriverWait(self.driver, timeout).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, css_selector))
+                )
+                
+                # Cek apakah element bisa menerima input
+                if element.is_displayed() and element.is_enabled():
+                    # Cek apakah contenteditable
+                    if element.get_attribute('contenteditable') == 'true':
+                        self._log(f"Text element ditemukan dengan CSS #{i+1}", "SUCCESS")
+                        return element
+                    
+            except TimeoutException:
+                continue
+        
+        self._log("Semua CSS selector gagal", "WARNING")
         return None
 
     def _find_file_input_direct(self, timeout: int = 10) -> Optional[Any]:
@@ -364,39 +376,82 @@ class FacebookUploader:
         self._log("Input file tidak ditemukan", "WARNING")
         return None
 
+    def _verify_media_upload(self, timeout: int = 30) -> bool:
+        """Verifikasi apakah media sudah ter-upload dengan benar"""
+        self._log("Memverifikasi apakah media sudah ter-upload...")
+        
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            for i, selector in enumerate(self.selectors['media_verification']):
+                try:
+                    # Coba dengan CSS selector
+                    element = self.driver.find_element(By.CSS_SELECTOR, selector)
+                    
+                    if element.is_displayed():
+                        # Cek apakah ini video atau image
+                        tag_name = element.tag_name.lower()
+                        
+                        if tag_name == 'video':
+                            # Cek apakah video memiliki src atau data
+                            src = element.get_attribute('src')
+                            data_video_id = element.get_attribute('data-video-id')
+                            
+                            if src or data_video_id:
+                                self._log(f"✅ Video berhasil ter-upload! (selector #{i+1})", "SUCCESS")
+                                self._log(f"Video element: {tag_name}, src: {src[:50] if src else 'N/A'}", "DEBUG")
+                                return True
+                        
+                        elif tag_name == 'img':
+                            # Cek apakah image memiliki src
+                            src = element.get_attribute('src')
+                            
+                            if src and ('blob:' in src or 'data:' in src or 'facebook' in src):
+                                self._log(f"✅ Image berhasil ter-upload! (selector #{i+1})", "SUCCESS")
+                                self._log(f"Image element: {tag_name}, src: {src[:50] if src else 'N/A'}", "DEBUG")
+                                return True
+                        
+                        else:
+                            # Element lain yang mungkin mengandung media
+                            if element.get_attribute('data-video-id') or element.get_attribute('data-media-id'):
+                                self._log(f"✅ Media berhasil ter-upload! (selector #{i+1})", "SUCCESS")
+                                return True
+                
+                except Exception as e:
+                    if self.debug:
+                        self._log(f"Selector #{i+1} gagal: {str(e)}", "DEBUG")
+                    continue
+            
+            # Tunggu sebentar sebelum coba lagi
+            time.sleep(2)
+        
+        self._log("⚠️ Tidak dapat memverifikasi media upload, melanjutkan...", "WARNING")
+        return False
+
     def _input_text_safely(self, element, text: str) -> bool:
-        """Input text dengan berbagai metode yang aman - Enhanced untuk Facebook dengan visibility check"""
+        """Input text dengan berbagai metode yang aman - Enhanced untuk Facebook"""
         self._log(f"Memasukkan text: {text[:50]}...")
         
         strategies = [
-            # Strategy 1: Focus + clear + type naturally
-            lambda e, t: (
-                self.driver.execute_script("arguments[0].focus();", e),
-                time.sleep(0.5),
-                e.clear(),
-                time.sleep(0.3),
-                e.send_keys(t),
-                time.sleep(0.5)
-            ),
+            # Strategy 1: Click + clear + send_keys
+            lambda e, t: (e.click(), time.sleep(0.5), e.clear(), e.send_keys(t)),
             
-            # Strategy 2: Click + select all + type
+            # Strategy 2: Focus + select all + type
             lambda e, t: (
                 e.click(),
                 time.sleep(0.5),
                 e.send_keys(Keys.CONTROL + "a"),
                 time.sleep(0.2),
-                e.send_keys(t),
-                time.sleep(0.5)
+                e.send_keys(t)
             ),
             
-            # Strategy 3: ActionChains dengan focus
+            # Strategy 3: ActionChains click + type
             lambda e, t: (
                 ActionChains(self.driver).move_to_element(e).click().perform(),
                 time.sleep(0.5),
                 ActionChains(self.driver).send_keys(Keys.CONTROL + "a").perform(),
                 time.sleep(0.2),
-                ActionChains(self.driver).send_keys(t).perform(),
-                time.sleep(0.5)
+                ActionChains(self.driver).send_keys(t).perform()
             ),
             
             # Strategy 4: JavaScript dengan proper events
@@ -404,11 +459,9 @@ class FacebookUploader:
                 self.driver.execute_script("arguments[0].focus();", e),
                 time.sleep(0.3),
                 self.driver.execute_script("arguments[0].innerHTML = '';", e),
-                time.sleep(0.2),
                 self.driver.execute_script("arguments[0].innerHTML = arguments[1];", e, t),
                 self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e),
-                self.driver.execute_script("arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", e),
-                time.sleep(0.5)
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", e)
             ),
             
             # Strategy 5: JavaScript textContent dengan events
@@ -416,11 +469,10 @@ class FacebookUploader:
                 self.driver.execute_script("arguments[0].focus();", e),
                 time.sleep(0.3),
                 self.driver.execute_script("arguments[0].textContent = '';", e),
-                time.sleep(0.2),
                 self.driver.execute_script("arguments[0].textContent = arguments[1];", e, t),
                 self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e),
                 self.driver.execute_script("arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", e),
-                time.sleep(0.5)
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('keyup', { bubbles: true }));", e)
             ),
             
             # Strategy 6: Character by character typing
@@ -428,44 +480,41 @@ class FacebookUploader:
                 e.click(),
                 time.sleep(0.5),
                 e.clear(),
-                time.sleep(0.3),
-                [e.send_keys(char) and time.sleep(0.05) for char in t],
-                time.sleep(0.5)
+                time.sleep(0.2),
+                [e.send_keys(char) and time.sleep(0.05) for char in t]
             ),
             
             # Strategy 7: JavaScript dengan innerText dan focus events
             lambda e, t: (
                 self.driver.execute_script("arguments[0].focus();", e),
-                self.driver.execute_script("arguments[0].dispatchEvent(new Event('focus', { bubbles: true }));", e),
-                time.sleep(0.3),
+                self.driver.execute_script("arguments[0].click();", e),
+                time.sleep(0.5),
                 self.driver.execute_script("arguments[0].innerText = arguments[1];", e, t),
                 self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e),
-                self.driver.execute_script("arguments[0].dispatchEvent(new Event('keyup', { bubbles: true }));", e),
-                time.sleep(0.5)
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", e),
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('blur', { bubbles: true }));", e)
             ),
             
-            # Strategy 8: Simulate real user typing with delays
+            # Strategy 8: Simulate real user typing dengan ActionChains
             lambda e, t: (
                 ActionChains(self.driver).move_to_element(e).click().perform(),
                 time.sleep(0.5),
                 ActionChains(self.driver).key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).perform(),
-                time.sleep(0.3),
+                time.sleep(0.2),
                 ActionChains(self.driver).send_keys(t).perform(),
                 time.sleep(0.5)
             ),
             
             # Strategy 9: JavaScript dengan data attributes
             lambda e, t: (
-                self.driver.execute_script("arguments[0].focus();", e),
-                time.sleep(0.3),
                 self.driver.execute_script("arguments[0].setAttribute('data-text', arguments[1]);", e, t),
                 self.driver.execute_script("arguments[0].textContent = arguments[1];", e, t),
-                self.driver.execute_script("arguments[0].value = arguments[1];", e, t),
+                self.driver.execute_script("arguments[0].innerHTML = arguments[1];", e, t),
                 self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e),
-                time.sleep(0.5)
+                self.driver.execute_script("arguments[0].focus();", e)
             ),
             
-            # Strategy 10: Force visibility and type
+            # Strategy 10: Force visibility dan type
             lambda e, t: (
                 self.driver.execute_script("arguments[0].style.display = 'block';", e),
                 self.driver.execute_script("arguments[0].style.visibility = 'visible';", e),
@@ -473,7 +522,7 @@ class FacebookUploader:
                 time.sleep(0.5),
                 e.clear(),
                 e.send_keys(t),
-                time.sleep(0.5)
+                self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", e)
             )
         ]
         
@@ -493,23 +542,26 @@ class FacebookUploader:
                 # Cek juga apakah text terlihat di UI
                 visible_text = self.driver.execute_script("return arguments[0].textContent || arguments[0].innerText || '';", element)
                 
-                if (text.lower() in current_text.lower() or 
-                    text.lower() in visible_text.lower() or 
-                    len(current_text.strip()) > 0 or 
-                    len(visible_text.strip()) > 0):
-                    
-                    self._log(f"Text berhasil dimasukkan dengan strategi #{i}", "SUCCESS")
-                    self._log(f"Text terdeteksi: '{visible_text[:50]}...'", "DEBUG")
+                if text.lower() in current_text.lower() or text.lower() in visible_text.lower() or len(current_text.strip()) > 0:
+                    self._log(f"✅ Text berhasil dimasukkan dengan strategi #{i}", "SUCCESS")
+                    self._log(f"Text terdeteksi: '{current_text[:50]}...'", "DEBUG")
+                    self._log(f"Visible text: '{visible_text[:50]}...'", "DEBUG")
                     
                     # Take screenshot untuk verifikasi visual
                     self.take_screenshot(f"facebook_text_input_success_{int(time.time())}.png")
+                    
+                    # Additional verification - tunggu sebentar dan cek lagi
+                    time.sleep(2)
+                    final_text = self.driver.execute_script("return arguments[0].textContent || arguments[0].innerText || '';", element)
+                    self._log(f"Final text verification: '{final_text[:50]}...'", "DEBUG")
+                    
                     return True
                     
             except Exception as e:
                 self._log(f"Strategi #{i} gagal: {str(e)}", "DEBUG")
                 continue
         
-        self._log("Semua strategi input text gagal", "ERROR")
+        self._log("❌ Semua strategi input text gagal", "ERROR")
         return False
 
     def _click_element_with_retry(self, element, description: str = "element") -> bool:
@@ -528,7 +580,7 @@ class FacebookUploader:
             try:
                 self._log(f"Mencoba {strategy_name} click...")
                 strategy_func(element)
-                self._log(f"Berhasil klik dengan {strategy_name}", "SUCCESS")
+                self._log(f"✅ Berhasil klik dengan {strategy_name}", "SUCCESS")
                 time.sleep(2)
                 return True
                 
@@ -536,7 +588,7 @@ class FacebookUploader:
                 self._log(f"{strategy_name} click gagal: {str(e)}", "DEBUG")
                 continue
         
-        self._log(f"Semua strategi klik gagal untuk '{description}'", "ERROR")
+        self._log(f"❌ Semua strategi klik gagal untuk '{description}'", "ERROR")
         return False
 
     def _upload_media_direct(self, media_path: str) -> bool:
@@ -554,15 +606,25 @@ class FacebookUploader:
                 # Kirim file ke input
                 file_input.send_keys(abs_path)
                 
-                self._log("Media berhasil diupload langsung!", "SUCCESS")
-                time.sleep(5)  # Wait for upload to process
-                return True
+                self._log("✅ Media berhasil diupload langsung!", "SUCCESS")
+                
+                # Tunggu sebentar untuk processing
+                time.sleep(3)
+                
+                # Verifikasi apakah media benar-benar ter-upload
+                if self._verify_media_upload(timeout=30):
+                    self._log("✅ Media upload berhasil diverifikasi!", "SUCCESS")
+                    return True
+                else:
+                    self._log("⚠️ Media upload tidak dapat diverifikasi, melanjutkan...", "WARNING")
+                    return True  # Tetap lanjutkan meskipun tidak dapat diverifikasi
+                
             else:
-                self._log("Input file tidak ditemukan untuk upload langsung", "ERROR")
+                self._log("❌ Input file tidak ditemukan untuk upload langsung", "ERROR")
                 return False
                 
         except Exception as e:
-            self._log(f"Gagal mengupload media langsung: {str(e)}", "ERROR")
+            self._log(f"❌ Gagal mengupload media langsung: {str(e)}", "ERROR")
             return False
 
     def load_cookies(self) -> bool:
@@ -617,7 +679,7 @@ class FacebookUploader:
                     if self.debug:
                         self._log(f"Gagal menambahkan cookie {cookie.get('name', 'unknown')}: {e}", "DEBUG")
             
-            self._log(f"Cookies dimuat: {cookies_added}/{len(cookies)}", "SUCCESS")
+            self._log(f"✅ Cookies dimuat: {cookies_added}/{len(cookies)}", "SUCCESS")
             return cookies_added > 0
             
         except Exception as e:
@@ -764,47 +826,47 @@ class FacebookUploader:
             self.take_screenshot(f"facebook_composer_opened_{int(time.time())}.png")
             
             # Step 2: Handle media upload LANGSUNG jika ada (input file sudah tersedia)
+            media_uploaded = False
             if media_path and os.path.exists(media_path):
                 self._log("Mencoba upload media langsung setelah composer terbuka...")
                 
                 if self._upload_media_direct(media_path):
-                    self._log("Media berhasil diupload!", "SUCCESS")
+                    self._log("✅ Media berhasil diupload!", "SUCCESS")
+                    media_uploaded = True
                     # Take screenshot after media upload
                     self.take_screenshot(f"facebook_media_uploaded_{int(time.time())}.png")
                 else:
-                    self._log("Media upload gagal, melanjutkan tanpa media...", "WARNING")
+                    self._log("⚠️ Media upload gagal, melanjutkan tanpa media...", "WARNING")
             
-            # Step 3: Input text jika ada - ENHANCED VERSION
+            # Step 3: Input text jika ada
             if status_text:
                 self._log("Mencari area text input di composer...")
                 
                 text_element = None
                 
-                # Coba CSS selector terlebih dahulu (berdasarkan DOM screenshot)
+                # Coba CSS selectors terlebih dahulu (berdasarkan DOM structure yang diberikan)
                 self._log("Mencoba CSS selector berdasarkan DOM structure...")
-                text_element = self._find_element_by_css_list(self.selectors['composer_text_area_css'])
+                text_element = self._find_text_element_by_css_list(self.selectors['composer_text_area_css'])
                 
-                # Jika CSS gagal, coba XPath
                 if not text_element:
-                    self._log("CSS selector gagal, mencoba XPath selector...")
-                    if media_path and os.path.exists(media_path):
+                    # Pilih selector yang tepat berdasarkan apakah ada media atau tidak
+                    if media_uploaded:
                         # Jika ada media, gunakan selector khusus untuk setelah media upload
+                        self._log("Mencoba XPath selector untuk setelah media upload...")
                         text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area_after_media'])
                     else:
                         # Jika tidak ada media, gunakan selector biasa
+                        self._log("Mencoba XPath selector biasa...")
                         text_element = self._find_text_element_by_xpath_list(self.selectors['composer_text_area'])
                 
                 if not text_element:
                     raise NoSuchElementException("Text area di composer tidak ditemukan")
                 
-                # Input text dengan metode yang aman dan enhanced verification
+                # Input text dengan metode yang aman
                 if not self._input_text_safely(text_element, status_text):
                     raise Exception("Gagal memasukkan text ke composer")
                 
-                # Additional verification - tunggu sebentar dan cek lagi
                 time.sleep(2)
-                final_text = self.driver.execute_script("return arguments[0].textContent || arguments[0].innerText || '';", text_element)
-                self._log(f"Final text verification: '{final_text[:50]}...'", "DEBUG")
             
             # Step 4: Klik tombol Post
             self._log("Mencari tombol Post di composer...")
@@ -814,7 +876,7 @@ class FacebookUploader:
                 raise NoSuchElementException("Tombol Post tidak ditemukan")
             
             if self._click_element_with_retry(post_element, "Post Button"):
-                self._log("Post berhasil diklik", "SUCCESS")
+                self._log("✅ Post berhasil diklik", "SUCCESS")
                 time.sleep(5)
                 
                 # Take screenshot after post
@@ -823,13 +885,14 @@ class FacebookUploader:
                 # Cek apakah kembali ke feed (indikasi sukses)
                 current_url = self.driver.current_url
                 if self.base_url in current_url and "composer" not in current_url:
-                    self._log("Status berhasil dipost ke Facebook!", "SUCCESS")
+                    self._log("✅ Status berhasil dipost ke Facebook!", "SUCCESS")
                     return {
                         "success": True,
                         "message": "Status berhasil dipost",
                         "status_text": status_text,
                         "media_path": media_path,
-                        "mode": mode
+                        "mode": mode,
+                        "media_uploaded": media_uploaded
                     }
                 else:
                     return {
@@ -837,7 +900,8 @@ class FacebookUploader:
                         "message": "Post mungkin berhasil tapi tidak dapat dikonfirmasi",
                         "status_text": status_text,
                         "media_path": media_path,
-                        "mode": mode
+                        "mode": mode,
+                        "media_uploaded": media_uploaded
                     }
             else:
                 raise Exception("Gagal mengklik tombol Post")
