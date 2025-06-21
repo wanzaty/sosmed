@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Facebook Uploader (Status & Reels) menggunakan Selenium
-Dengan XPath selector spesifik yang telah ditentukan
+Dengan CSS selector spesifik yang telah ditentukan
 """
 
 import os
@@ -60,16 +60,20 @@ class FacebookUploader:
         self.base_url = "https://www.facebook.com"
         self.reels_url = "https://www.facebook.com/reels/create/?surface=PROFILE_PLUS"
         
-        # XPath Selectors yang spesifik - HANYA MENGGUNAKAN YANG DIBERIKAN
+        # CSS Selectors yang spesifik - HANYA MENGGUNAKAN YANG DIBERIKAN
         self.selectors = {
-            # Media upload selector
-            'media_upload': '//*[@id="mount_0_0_qH"]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div/div[2]/div/div[2]/div/div/div/div[1]/div',
+            # TEXT ONLY MODE
+            'text_only': {
+                'trigger': 'span.x1lliihq.x6ikm8r.x10wlt62.x1n2onr6[style*="-webkit-box-orient:vertical;-webkit-line-clamp:2;display:-webkit-box"]',
+                'post_button': 'div[aria-label="Post"].x1i10hfl.xjbqb8w.x1ejq31n.x18oe1m7.x1sy0etr.xstzfhl.x972fbf.x10w94by.x1qhh985.x14e42zd.x1ypdohk.xe8uvvx.xdj266r.x14z9mp.xat24cr.x1lziwak.xexx8yu.xyri2b.x18d9i69.x1c1uobl.x16tdsg8.x1hl2dhg.xggy1nq.x1fmog5m.xu25z0z.x140muxe.xo1y3bh.x87ps6o.x1lku1pv.x1a2a7pz.x9f619.x3nfvp2.xdt5ytf.xl56j7k.x1n2onr6.xh8yej3[role="button"][tabindex="0"]'
+            },
             
-            # Text input selector
-            'text_input': '//*[@id="mount_0_0_qH"]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[1]/div[1]/div/div',
-            
-            # Post button selector
-            'post_button': '//*[@id="mount_0_0_qH"]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[3]/div[3]/div/div'
+            # TEXT + MEDIA MODE
+            'text_media': {
+                'trigger': 'span.x1lliihq.x6ikm8r.x10wlt62.x1n2onr6[style*="-webkit-box-orient:vertical;-webkit-line-clamp:2;display:-webkit-box"]',
+                'text_input': 'div.xzsf02u.x1a2a7pz.x1n2onr6.x14wi4xw.x9f619.x1lliihq.x5yr21d.xh8yej3.notranslate[contenteditable="true"][role="textbox"][spellcheck="true"][tabindex="0"][data-lexical-editor="true"]',
+                'post_button': 'div[aria-label="Post"].x1i10hfl.xjbqb8w.x1ejq31n.x18oe1m7.x1sy0etr.xstzfhl.x972fbf.x10w94by.x1qhh985.x14e42zd.x1ypdohk.xe8uvvx.xdj266r.x14z9mp.xat24cr.x1lziwak.xexx8yu.xyri2b.x18d9i69.x1c1uobl.x16tdsg8.x1hl2dhg.xggy1nq.x1fmog5m.xu25z0z.x140muxe.xo1y3bh.x87ps6o.x1lku1pv.x1a2a7pz.x9f619.x3nfvp2.xdt5ytf.xl56j7k.x1n2onr6.xh8yej3[role="button"][tabindex="0"]'
+            }
         }
 
     def _log(self, message: str, level: str = "INFO"):
@@ -210,16 +214,16 @@ class FacebookUploader:
             self._log(f"Gagal menyiapkan browser: {str(e)}", "ERROR")
             raise
 
-    def _find_element_by_xpath(self, xpath: str, timeout: int = 10) -> Optional[Any]:
-        """Mencari elemen menggunakan XPath"""
+    def _find_element_by_css(self, css_selector: str, timeout: int = 10) -> Optional[Any]:
+        """Mencari elemen menggunakan CSS selector"""
         try:
             element = WebDriverWait(self.driver, timeout).until(
-                EC.element_to_be_clickable((By.XPATH, xpath))
+                EC.element_to_be_clickable((By.CSS_SELECTOR, css_selector))
             )
-            self._log("Elemen ditemukan dengan XPath", "SUCCESS")
+            self._log("Elemen ditemukan dengan CSS selector", "SUCCESS")
             return element
         except TimeoutException:
-            self._log("Elemen tidak ditemukan dengan XPath", "WARNING")
+            self._log("Elemen tidak ditemukan dengan CSS selector", "WARNING")
             return None
 
     def _click_element_with_retry(self, element, description: str = "element") -> bool:
@@ -382,7 +386,7 @@ class FacebookUploader:
 
     def upload_status(self, status_text: str = "", media_path: str = "") -> Dict[str, Any]:
         """
-        Upload status ke Facebook dengan XPath selector spesifik
+        Upload status ke Facebook dengan CSS selector spesifik
         
         Args:
             status_text: Text status
@@ -421,32 +425,35 @@ class FacebookUploader:
             # Determine mode
             if status_text and media_path:
                 mode = "TEXT + MEDIA"
+                selectors = self.selectors['text_media']
             elif media_path:
                 mode = "MEDIA ONLY"
+                selectors = self.selectors['text_media']  # Use text_media for media upload
             elif status_text:
                 mode = "TEXT ONLY"
+                selectors = self.selectors['text_only']
             else:
                 raise ValueError("Minimal status text atau media diperlukan")
             
             self._log(f"MODE: {mode}")
             
-            # Step 1: Upload media jika ada (harus dilakukan dulu)
+            # Step 1: Klik trigger element untuk membuka composer
+            self._log("Mencari trigger element...")
+            trigger_element = self._find_element_by_css(selectors['trigger'])
+            if not trigger_element:
+                raise NoSuchElementException("Trigger element tidak ditemukan")
+            
+            if not self._click_element_with_retry(trigger_element, "Trigger Element"):
+                raise Exception("Gagal mengklik trigger element")
+            
+            time.sleep(3)  # Wait for composer to open
+            
+            # Step 2: Upload media jika ada (untuk TEXT+MEDIA atau MEDIA ONLY)
             if media_path and os.path.exists(media_path):
                 self._log(f"Mengupload media: {os.path.basename(media_path)}")
                 
-                # Cari elemen media upload menggunakan XPath spesifik
-                media_element = self._find_element_by_xpath(self.selectors['media_upload'])
-                if not media_element:
-                    raise NoSuchElementException("Elemen media upload tidak ditemukan")
-                
-                # Klik elemen media upload
-                if not self._click_element_with_retry(media_element, "Media Upload"):
-                    raise Exception("Gagal mengklik elemen media upload")
-                
-                time.sleep(2)
-                
-                # Cari input file (biasanya muncul setelah klik)
                 try:
+                    # Cari input file (biasanya muncul setelah composer terbuka)
                     file_input = self.driver.find_element(By.CSS_SELECTOR, "input[type='file']")
                     abs_path = os.path.abspath(media_path)
                     file_input.send_keys(abs_path)
@@ -455,14 +462,13 @@ class FacebookUploader:
                 except Exception as e:
                     raise Exception(f"Gagal mengupload media: {str(e)}")
             
-            # Step 2: Input text jika ada
-            if status_text:
+            # Step 3: Input text jika ada (untuk TEXT+MEDIA mode)
+            if status_text and mode == "TEXT + MEDIA":
                 self._log(f"Memasukkan text: {status_text[:50]}...")
                 
-                # Cari elemen text input menggunakan XPath spesifik
-                text_element = self._find_element_by_xpath(self.selectors['text_input'])
+                text_element = self._find_element_by_css(selectors['text_input'])
                 if not text_element:
-                    raise NoSuchElementException("Elemen text input tidak ditemukan")
+                    raise NoSuchElementException("Text input element tidak ditemukan")
                 
                 # Klik dan input text
                 text_element.click()
@@ -472,9 +478,9 @@ class FacebookUploader:
                 self._log("Text berhasil dimasukkan", "SUCCESS")
                 time.sleep(1)
             
-            # Step 3: Klik tombol post
+            # Step 4: Klik tombol post
             self._log("Mencari tombol post...")
-            post_element = self._find_element_by_xpath(self.selectors['post_button'])
+            post_element = self._find_element_by_css(selectors['post_button'])
             if not post_element:
                 raise NoSuchElementException("Tombol post tidak ditemukan")
             
