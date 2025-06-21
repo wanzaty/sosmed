@@ -60,65 +60,67 @@ class FacebookUploader:
         self.base_url = "https://www.facebook.com"
         self.reels_url = "https://www.facebook.com/reels/create/?surface=PROFILE_PLUS"
         
-        # Selectors yang diperbarui untuk Facebook
+        # Selectors yang diperbarui untuk Facebook - IMPROVED VERSION
         self.selectors = {
-            # Status selectors - UPDATED dengan lebih banyak fallback
+            # Status selectors - COMPLETELY REWRITTEN dengan selector yang lebih akurat
             'status_click_triggers': [
-                # Primary selectors
-                "[data-pagelet='FeedComposer'] [role='button'][aria-label*='mind']",
-                "[data-pagelet='FeedComposer'] [role='button'][aria-label*='thinking']",
-                "[data-pagelet='FeedComposer'] [role='button'][aria-label*='share']",
-                
-                # Fallback selectors
+                # Selector terbaru Facebook 2024
+                "div[role='button'][data-testid='status-attachment-mentions-input']",
+                "div[role='button'][aria-label*=\"What's on your mind\"]",
                 "div[role='button'][aria-label*='mind']",
+                
+                # Fallback untuk berbagai bahasa
                 "div[role='button'][aria-label*='thinking']",
                 "div[role='button'][aria-label*='share']",
-                
-                # Text-based selectors
-                "div[role='button']:has-text('What\\'s on your mind')",
-                "div[role='button']:has-text('What are you thinking')",
+                "div[role='button'][aria-label*='Apa yang']",
+                "div[role='button'][aria-label*='sedang']",
                 
                 # Generic composer triggers
                 "[data-testid='status-attachment-mentions-input']",
                 "[data-testid='composer-input']",
                 "div[contenteditable='true'][role='textbox']",
                 
-                # More generic fallbacks
-                "div[role='button'][tabindex='0']:contains('mind')",
-                "div[role='button'][tabindex='0']:contains('thinking')",
-                "div[aria-label*='Create a post']",
-                "div[aria-label*='Write a post']",
+                # XPath-based selectors (converted to CSS where possible)
+                "div[role='button'][tabindex='0']",
                 
-                # Last resort
+                # Last resort - any clickable div that might be composer
                 "div[role='button'][data-testid*='composer']",
-                "div[role='button'][data-testid*='status']"
+                "div[role='button'][data-testid*='status']",
+                
+                # Alternative approach - look for placeholder text
+                "div[data-testid='status-attachment-mentions-input'] div[role='button']",
+                "div[aria-describedby] div[role='button']"
             ],
             
             'composer_indicators': [
-                # Primary indicators
+                # Primary indicators - what we expect to see when composer is open
                 "form[method='POST'] div[contenteditable='true']",
-                "div[data-testid='composer-input']",
-                "div[role='textbox'][contenteditable='true']",
+                "div[data-testid='composer-input'] div[contenteditable='true']",
+                "div[role='textbox'][contenteditable='true'][aria-multiline='true']",
                 
                 # Secondary indicators
-                "div[aria-label*='What\\'s on your mind']",
-                "div[aria-label*='Write something']",
+                "div[aria-label*=\"What's on your mind\"][contenteditable='true']",
+                "div[aria-label*='Write something'][contenteditable='true']",
                 "textarea[placeholder*='mind']",
                 
                 # Generic indicators
                 "div[contenteditable='true'][data-testid]",
                 "div[contenteditable='true'][aria-multiline='true']",
-                "form div[contenteditable='true']"
+                "form div[contenteditable='true']",
+                
+                # Post button as indicator
+                "div[aria-label='Post'][role='button']",
+                "div[aria-label='Share'][role='button']"
             ],
             
             'status_input': [
-                # Primary input selectors
+                # Primary input selectors - UPDATED
                 "div[data-testid='composer-input'] div[contenteditable='true']",
                 "form[method='POST'] div[contenteditable='true'][role='textbox']",
                 "div[role='textbox'][contenteditable='true'][aria-multiline='true']",
                 
                 # Fallback input selectors
-                "div[contenteditable='true'][data-testid]",
+                "div[contenteditable='true'][data-testid*='composer']",
                 "div[contenteditable='true'][aria-label*='mind']",
                 "div[contenteditable='true'][aria-label*='thinking']",
                 "div[contenteditable='true'][aria-label*='Write']",
@@ -126,7 +128,11 @@ class FacebookUploader:
                 # Generic fallbacks
                 "div[contenteditable='true'][role='textbox']",
                 "div[contenteditable='true'][tabindex='0']",
-                "textarea[placeholder*='mind']"
+                "textarea[placeholder*='mind']",
+                
+                # More specific selectors
+                "div[aria-describedby] div[contenteditable='true']",
+                "div[data-testid='status-attachment-mentions-input'] div[contenteditable='true']"
             ],
             
             'media_upload_input': [
@@ -134,11 +140,13 @@ class FacebookUploader:
                 "input[type='file'][accept*='video']",
                 "input[type='file'][multiple]",
                 "input[type='file'][data-testid*='composer']",
-                "input[type='file'][data-testid*='photo']"
+                "input[type='file'][data-testid*='photo']",
+                "input[type='file'][aria-label*='photo']",
+                "input[type='file'][aria-label*='video']"
             ],
             
             'post_button': [
-                # Primary post buttons
+                # Primary post buttons - UPDATED
                 "div[aria-label='Post'][role='button']",
                 "div[aria-label='Share'][role='button']",
                 "button[data-testid='react-composer-post-button']",
@@ -150,9 +158,12 @@ class FacebookUploader:
                 "button:has-text('Share')",
                 
                 # Generic post buttons
-                "div[role='button'][tabindex='0']:contains('Post')",
-                "div[role='button'][tabindex='0']:contains('Share')",
-                "button[type='submit']"
+                "div[role='button'][tabindex='0']",
+                "button[type='submit']",
+                
+                # More specific selectors
+                "div[aria-label='Post'][role='button'][tabindex='0']",
+                "div[data-testid*='post'] div[role='button']"
             ],
             
             # Reels selectors
@@ -358,6 +369,18 @@ class FacebookUploader:
                 
         return None
 
+    def _find_elements_by_text(self, text_patterns: list, tag: str = "*") -> list:
+        """Find elements by text content using XPath"""
+        elements = []
+        for pattern in text_patterns:
+            try:
+                xpath = f"//{tag}[contains(text(), '{pattern}')]"
+                found_elements = self.driver.find_elements(By.XPATH, xpath)
+                elements.extend(found_elements)
+            except:
+                continue
+        return elements
+
     def _click_element_with_retry(self, element, description: str = "element") -> bool:
         """Click element dengan multiple strategies dan retry"""
         self._log(f"ℹ️ ℹ️ ℹ️ 🖱️ Clicking '{description}' element...")
@@ -386,23 +409,43 @@ class FacebookUploader:
         return False
 
     def _validate_composer_open(self) -> bool:
-        """Validate apakah composer benar-benar terbuka"""
+        """Validate apakah composer benar-benar terbuka - IMPROVED VERSION"""
         self._log("ℹ️ 🔍 🔍 VALIDATING: Checking if composer is really open...")
         
         indicators_found = 0
+        
+        # Check for composer indicators
         for selector in self.selectors['composer_indicators']:
             try:
                 elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
+                for element in elements:
+                    if element.is_displayed() and element.is_enabled():
+                        indicators_found += 1
+                        break
+            except:
+                continue
+        
+        # Additional check: look for text-based indicators
+        text_indicators = [
+            "What's on your mind",
+            "Write something",
+            "Share an update",
+            "Post"
+        ]
+        
+        for text in text_indicators:
+            try:
+                xpath = f"//*[contains(text(), '{text}')]"
+                elements = self.driver.find_elements(By.XPATH, xpath)
                 if elements:
-                    for element in elements:
-                        if element.is_displayed() and element.is_enabled():
-                            indicators_found += 1
-                            break
+                    indicators_found += 1
+                    break
             except:
                 continue
         
         self._log(f"ℹ️ 🔍 Found {indicators_found} composer indicators")
         
+        # Lower threshold - even 1 indicator might be enough
         if indicators_found >= 1:
             self._log("✅ ✅ ✅ ✅ VALIDATION SUCCESS: Composer is open!", "SUCCESS")
             return True
@@ -411,7 +454,7 @@ class FacebookUploader:
             return False
 
     def _open_composer_with_strategies(self) -> bool:
-        """Buka composer dengan multiple strategies"""
+        """Buka composer dengan multiple strategies - COMPLETELY REWRITTEN"""
         
         # Strategy 1: Click "What's on your mind" trigger
         self._log("ℹ️ 🎯 🎯 STEP 1: Looking for 'What's on your mind' click element...")
@@ -419,6 +462,7 @@ class FacebookUploader:
         
         if click_element:
             if self._click_element_with_retry(click_element, "What's on your mind"):
+                time.sleep(3)  # Give more time for composer to load
                 if self._validate_composer_open():
                     return True
         
@@ -430,13 +474,29 @@ class FacebookUploader:
         if composer_input:
             try:
                 composer_input.click()
+                time.sleep(2)
                 if self._validate_composer_open():
                     return True
             except:
                 pass
         
-        # Strategy 3: Try keyboard shortcut
-        self._log("ℹ️ 🎯 🎯 STRATEGY 3: Trying keyboard shortcut...")
+        # Strategy 3: Try text-based search
+        self._log("ℹ️ 🎯 🎯 STRATEGY 3: Searching by text content...")
+        text_patterns = ["What's on your mind", "Write something", "Share an update"]
+        text_elements = self._find_elements_by_text(text_patterns, "div")
+        
+        for element in text_elements:
+            try:
+                if element.is_displayed() and element.is_enabled():
+                    if self._click_element_with_retry(element, "Text-based element"):
+                        time.sleep(3)
+                        if self._validate_composer_open():
+                            return True
+            except:
+                continue
+        
+        # Strategy 4: Try keyboard shortcut
+        self._log("ℹ️ 🎯 🎯 STRATEGY 4: Trying keyboard shortcut...")
         try:
             ActionChains(self.driver).send_keys(Keys.TAB).send_keys(Keys.ENTER).perform()
             time.sleep(2)
@@ -445,18 +505,18 @@ class FacebookUploader:
         except:
             pass
         
-        # Strategy 4: Try direct URL navigation to force composer
-        self._log("ℹ️ 🎯 🎯 STRATEGY 4: Trying direct URL navigation...")
+        # Strategy 5: Try direct URL navigation to force composer
+        self._log("ℹ️ 🎯 🎯 STRATEGY 5: Trying direct URL navigation...")
         try:
             self.driver.get(f"{self.base_url}/?sk=h_chr")  # Home with composer focus
-            time.sleep(3)
+            time.sleep(5)
             if self._validate_composer_open():
                 return True
         except:
             pass
         
-        # Strategy 5: Try scrolling and looking again
-        self._log("ℹ️ 🎯 🎯 STRATEGY 5: Scrolling and looking for composer...")
+        # Strategy 6: Try scrolling and looking again
+        self._log("ℹ️ 🎯 🎯 STRATEGY 6: Scrolling and looking for composer...")
         try:
             self.driver.execute_script("window.scrollTo(0, 0);")  # Scroll to top
             time.sleep(2)
@@ -465,8 +525,51 @@ class FacebookUploader:
             click_element = self._find_element_by_selectors(self.selectors['status_click_triggers'], timeout=5)
             if click_element:
                 if self._click_element_with_retry(click_element, "What's on your mind (after scroll)"):
+                    time.sleep(3)
                     if self._validate_composer_open():
                         return True
+        except:
+            pass
+        
+        # Strategy 7: Force composer by JavaScript
+        self._log("ℹ️ 🎯 🎯 STRATEGY 7: Force composer with JavaScript...")
+        try:
+            # Try to trigger composer with JavaScript
+            js_script = """
+            var composerTriggers = document.querySelectorAll('[role="button"]');
+            for (var i = 0; i < composerTriggers.length; i++) {
+                var element = composerTriggers[i];
+                var text = element.textContent || element.innerText || '';
+                var ariaLabel = element.getAttribute('aria-label') || '';
+                if (text.includes('mind') || ariaLabel.includes('mind') || 
+                    text.includes('thinking') || ariaLabel.includes('thinking')) {
+                    element.click();
+                    break;
+                }
+            }
+            """
+            self.driver.execute_script(js_script)
+            time.sleep(3)
+            if self._validate_composer_open():
+                return True
+        except:
+            pass
+        
+        # Strategy 8: Last resort - try any button that might be composer
+        self._log("ℹ️ 🎯 🎯 STRATEGY 8: Last resort - trying any potential composer button...")
+        try:
+            buttons = self.driver.find_elements(By.CSS_SELECTOR, "div[role='button']")
+            for button in buttons[:10]:  # Try first 10 buttons
+                try:
+                    if button.is_displayed() and button.is_enabled():
+                        aria_label = button.get_attribute('aria-label') or ''
+                        if any(keyword in aria_label.lower() for keyword in ['mind', 'post', 'share', 'write']):
+                            button.click()
+                            time.sleep(2)
+                            if self._validate_composer_open():
+                                return True
+                except:
+                    continue
         except:
             pass
         
@@ -624,7 +727,7 @@ class FacebookUploader:
             # Navigate ke Facebook
             self._log("Navigating to Facebook...")
             self.driver.get(self.base_url)
-            time.sleep(3)
+            time.sleep(5)  # Give more time for page to load
             
             # Take screenshot before starting
             self.take_screenshot(f"facebook_before_post_{int(time.time())}.png")
@@ -634,12 +737,12 @@ class FacebookUploader:
                 if cookies_loaded:
                     self._log("Cookies dimuat tapi masih perlu login, refresh halaman...", "WARNING")
                     self.driver.refresh()
-                    time.sleep(3)
+                    time.sleep(5)
                 
                 if self.check_login_required():
                     self.wait_for_login()
                     self.driver.get(self.base_url)
-                    time.sleep(3)
+                    time.sleep(5)
             
             # Determine mode
             if status_text and media_path:
